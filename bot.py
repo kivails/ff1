@@ -1,7 +1,7 @@
-import os, random, asyncio, httpx
+import os, asyncio, httpx
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import WebAppInfo, MenuButtonCommands, FSInputFile
+from aiogram.types import WebAppInfo, MenuButtonCommands
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import aiosqlite
 from database import DB
@@ -23,42 +23,35 @@ async def keep_alive():
 
 @dp.message(CommandStart())
 async def start_cmd(message: types.Message):
+    args = message.text.split()
+    if len(args) > 1 and args[1].startswith("ref_"):
+        ref_id = int(args[1].replace("ref_", ""))
+        async with aiosqlite.connect(DB) as db:
+            await db.execute("UPDATE users SET referred_by=? WHERE id=? AND referred_by IS NULL", (ref_id, message.from_user.id))
+            await db.commit()
+    
     GIF_URL = "https://media.tenor.com/7X5y8y7X5y8AAAAC/anime-girl.gif"
     kb = InlineKeyboardBuilder()
     kb.button(text="📖 Открыть RaReads", web_app=WebAppInfo(url=APP_URL))
     await message.answer_animation(animation=GIF_URL, caption=f"Привет, <b>{message.from_user.first_name}</b>! ⛩️\n\nДобро пожаловать в RaReads!", parse_mode="HTML", reply_markup=kb.as_markup())
 
-@dp.message(Command("backup"))
-async def backup_cmd(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS: return
-    if os.path.exists(DB):
-        await message.answer_document(FSInputFile(DB), caption="📁 Бэкап базы данных")
-    else:
-        await message.answer("Файл базы данных не найден.")
+@dp.message(Command("ref"))
+async def ref_cmd(message: types.Message):
+    link = f"https://t.me/{(await bot.get_me()).username}?start=ref_{message.from_user.id}"
+    await message.answer(f"🔗 Твоя реферальная ссылка:\n<code>{link}</code>\n\nЗа каждого друга +10 💎!", parse_mode="HTML")
 
-@dp.message(Command("restore"))
-async def restore_cmd(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS: return
-    if not message.reply_to_message or not message.reply_to_message.document:
-        return await message.answer("Ответь на файл с базой данных командой /restore")
-    file_id = message.reply_to_message.document.file_id
-    file = await bot.get_file(file_id)
-    await bot.download_file(file.file_path, DB)
-    await message.answer("✅ База данных восстановлена! (Перезапусти сервис)")
-
-@dp.message(F.audio | F.document) 
-async def handle_music(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS: return
-    file_id = message.audio.file_id if message.audio else message.document.file_id
+@dp.message(Command("shop"))
+async def shop_cmd(message: types.Message):
     async with aiosqlite.connect(DB) as db:
-        await db.execute("UPDATE settings SET value=? WHERE key='bg_music_1'", (file_id,))
-        await db.commit()
-    await message.answer("🎵 Музыка обновлена!")
+        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (message.from_user.id,))
+        c = (await cur.fetchone())[0] or 0
+    text = f"🛍️ <b>Магазин (Баланс: {c} 💎)</b>\n\nРамки:\n🥇 Золото - 50 💎\n🔥 Огонь - 100 💎\n🌸 Сакура - 150 💎\n\n<i>Покупка в профиле приложения!</i>"
+    await message.answer(text, parse_mode="HTML")
 
 @dp.message(Command("admin"))
 async def admin_cmd(message: types.Message):
     if message.from_user.id not in ADMIN_IDS: return
-    await message.answer("🛡️ Админ-команды:\n/ban <id>\n/give_crystals <id> <кол-во>\n/badge <id> <эмодзи>\n/tag <название> <#цвет>\n/backup - сохранить БД\n\nОтправь аудио, чтобы сменить музыку.")
+    await message.answer("🛡️ Админ-команды:\n/ban <id>\n/give_crystals <id> <кол-во>\n/badge <id> <эмодзи>\n/tag <название> <#цвет>")
 
 @dp.message(Command("ban"))
 async def ban_cmd(message: types.Message):
@@ -116,7 +109,8 @@ async def mod_action(callback: types.CallbackQuery):
 async def set_commands():
     await bot.set_my_commands([
         types.BotCommand(command="start", description="Запустить ⛩️"),
-        types.BotCommand(command="backup", description="Бэкап БД 📁"),
+        types.BotCommand(command="ref", description="Реф-ссылка 🔗"),
+        types.BotCommand(command="shop", description="Магазин 🛍️"),
         types.BotCommand(command="admin", description="Админ 🛡️"),
     ])
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())

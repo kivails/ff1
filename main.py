@@ -5,7 +5,7 @@ from database import init_db
 async def run_bot():
     await bot.delete_webhook(drop_pending_updates=True)
     await set_commands()
-    await start_keep_alive() # Запускаем внутренний пинг
+    await start_keep_alive()
     await dp.start_polling(bot)
 
 async def run_api():

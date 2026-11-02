@@ -1,15 +1,28 @@
 import json
-from fastapi import FastAPI, HTTPException, Depends, Query
+import os
+import httpx
+from fastapi import FastAPI, HTTPException, Depends, Query, UploadFile, File
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from aiocache import cached, Cache
+from aiocache import Cache
 from aiocache.serializers import JsonSerializer
-from database import DB, get_db, init_db
+from database import get_db, init_db
 from auth import current_user
 
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+ADMIN_IDS = {123456789}  # Замени на свой Telegram ID
+
 app = FastAPI()
-BOT_TOKEN = "ТВОЙ_ТОКЕН"
-ADMIN_IDS = {123456789}  # твой telegram id
+
+# Разрешаем CORS, чтобы приложение работало без ошибок
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 cache = Cache(Cache.MEMORY, serializer=JsonSerializer())
 
@@ -31,7 +44,7 @@ async def apply_karma(db, user_id, delta):
     await db.execute("UPDATE users SET karma = karma + ? WHERE id = ?", (delta, user_id))
 
 async def invalidate(prefix: str):
-    await cache.clear()   # простой вариант; для продакшена — точечно
+    await cache.clear()
 
 # ============ Модели ============
 class PostIn(BaseModel):
@@ -73,9 +86,8 @@ async def list_posts(
         "hot":  "(p.score * 1.0 / (julianday('now') - julianday(p.created_at) + 2)) DESC"
     }.get(sort, "p.created_at DESC")
 
-    async with await get_db() as db:
+    async with get_db() as db:
         if q:
-            # FTS5 поиск
             cursor = await db.execute(
                 """SELECT p.id, p.title, p.tag, p.score, p.views, p.created_at,
                           u.username, u.first_name,
@@ -109,7 +121,7 @@ async def list_posts(
 
 @app.get("/api/posts/{post_id}")
 async def get_post(post_id: int, user=Depends(current_user)):
-    async with await get_db() as db:
+    async with get_db() as db:
         await db.execute("UPDATE posts SET views = views + 1 WHERE id=?", (post_id,))
         await db.commit()
 
@@ -130,7 +142,6 @@ async def get_post(post_id: int, user=Depends(current_user)):
         """, (post_id,))
         comments = [dict(r) for r in await cur.fetchall()]
 
-        # текущий голос пользователя
         cur = await db.execute(
             "SELECT value FROM votes WHERE user_id=? AND target_type='post' AND target_id=?",
             (user["id"], post_id)
@@ -138,7 +149,6 @@ async def get_post(post_id: int, user=Depends(current_user)):
         my_vote = (await cur.fetchone())
         post = dict(post); post["my_vote"] = my_vote[0] if my_vote else 0
 
-        # подписка
         cur = await db.execute(
             "SELECT 1 FROM subscriptions WHERE user_id=? AND post_id=?",
             (user["id"], post_id)
@@ -153,13 +163,13 @@ async def create_post(data: PostIn, user=Depends(current_user)):
         raise HTTPException(400, "bad title")
     if len(data.body) > 10000:
         raise HTTPException(400, "too long")
-    async with await get_db() as db:
+    async with get_db() as db:
         cur = await db.execute(
             "INSERT INTO posts(author_id,title,body,tag,image_file_id) VALUES (?,?,?,?,?)",
             (user["id"], data.title, data.body, data.tag, data.image_file_id)
         )
         await bump_tag(db, data.tag)
-        await apply_karma(db, user["id"], 2)   # +2 кармы за пост
+        await apply_karma(db, user["id"], 2)
         await db.commit()
         new_id = cur.lastrowid
     await invalidate("posts")
@@ -167,7 +177,7 @@ async def create_post(data: PostIn, user=Depends(current_user)):
 
 @app.delete("/api/posts/{post_id}")
 async def delete_post(post_id: int, user=Depends(current_user)):
-    async with await get_db() as db:
+    async with get_db() as db:
         cur = await db.execute("SELECT author_id FROM posts WHERE id=?", (post_id,))
         row = await cur.fetchone()
         if not row: raise HTTPException(404)
@@ -181,7 +191,7 @@ async def delete_post(post_id: int, user=Depends(current_user)):
 @app.post("/api/comments")
 async def create_comment(data: CommentIn, user=Depends(current_user)):
     if not data.body.strip(): raise HTTPException(400, "empty")
-    async with await get_db() as db:
+    async with get_db() as db:
         cur = await db.execute(
             "INSERT INTO comments(post_id,parent_id,author_id,body) VALUES (?,?,?,?)",
             (data.post_id, data.parent_id, user["id"], data.body)
@@ -189,7 +199,6 @@ async def create_comment(data: CommentIn, user=Depends(current_user)):
         comment_id = cur.lastrowid
         await apply_karma(db, user["id"], 1)
 
-        # уведомление родителю или автору поста
         target_author = None
         if data.parent_id:
             cur = await db.execute(
@@ -209,7 +218,6 @@ async def create_comment(data: CommentIn, user=Depends(current_user)):
                 "preview": data.body[:100]
             })
 
-        # уведомления подписчикам
         cur = await db.execute(
             "SELECT user_id FROM subscriptions WHERE post_id=?", (data.post_id,))
         for r in await cur.fetchall():
@@ -229,7 +237,7 @@ async def vote(data: VoteIn, user=Depends(current_user)):
         raise HTTPException(400)
     table = "posts" if data.target_type == "post" else "comments"
 
-    async with await get_db() as db:
+    async with get_db() as db:
         cur = await db.execute(f"SELECT author_id, score FROM {table} WHERE id=?",
                                (data.target_id,))
         target = await cur.fetchone()
@@ -257,7 +265,6 @@ async def vote(data: VoteIn, user=Depends(current_user)):
         await db.execute(f"UPDATE {table} SET score=score+? WHERE id=?",
                          (delta, data.target_id))
 
-        # карма автору (только при upvote/downvote, не за отмену)
         if author_id != user["id"]:
             await apply_karma(db, author_id, delta)
 
@@ -266,20 +273,20 @@ async def vote(data: VoteIn, user=Depends(current_user)):
         new_score = (await cur.fetchone())["score"]
     return {"score": new_score, "my_vote": data.value}
 
-# ============ Поиск ============
+# ============ Поиск и теги ============
 @app.get("/api/search")
 async def search(q: str = Query(..., min_length=2), user=Depends(current_user)):
     return await list_posts(sort="top", q=q, user=user)
 
 @app.get("/api/tags")
 async def tags(user=Depends(current_user)):
-    async with await get_db() as db:
+    async with get_db() as db:
         cur = await db.execute("SELECT name, posts_count FROM tags ORDER BY posts_count DESC LIMIT 30")
         return [dict(r) for r in await cur.fetchall()]
 
 @app.get("/api/users/{user_id}")
 async def user_profile(user_id: int, user=Depends(current_user)):
-    async with await get_db() as db:
+    async with get_db() as db:
         cur = await db.execute(
             "SELECT id,username,first_name,karma,created_at FROM users WHERE id=?",
             (user_id,))
@@ -294,11 +301,10 @@ async def user_profile(user_id: int, user=Depends(current_user)):
 @app.post("/api/report")
 async def report(data: ReportIn, user=Depends(current_user)):
     if data.target_type not in ("post","comment"): raise HTTPException(400)
-    async with await get_db() as db:
+    async with get_db() as db:
         await db.execute(
             "INSERT INTO reports(reporter_id,target_type,target_id,reason) VALUES (?,?,?,?)",
             (user["id"], data.target_type, data.target_id, data.reason))
-        # авто-скрытие после 5 жалоб
         cur = await db.execute(
             "SELECT COUNT(*) c FROM reports WHERE target_type=? AND target_id=? AND resolved=0",
             (data.target_type, data.target_id))
@@ -309,36 +315,10 @@ async def report(data: ReportIn, user=Depends(current_user)):
         await db.commit()
     return {"ok": True}
 
-@app.get("/api/reports")
-async def list_reports(user=Depends(current_user)):
-    if user["id"] not in ADMIN_IDS: raise HTTPException(403)
-    async with await get_db() as db:
-        cur = await db.execute("""
-            SELECT r.*, u.username FROM reports r
-            JOIN users u ON u.id=r.reporter_id
-            WHERE r.resolved=0 ORDER BY r.created_at DESC LIMIT 100
-        """)
-        return [dict(r) for r in await cur.fetchall()]
-
-@app.post("/api/reports/{report_id}/resolve")
-async def resolve_report(report_id: int, action: str = "dismiss",
-                        user=Depends(current_user)):
-    if user["id"] not in ADMIN_IDS: raise HTTPException(403)
-    async with await get_db() as db:
-        cur = await db.execute("SELECT * FROM reports WHERE id=?", (report_id,))
-        r = await cur.fetchone()
-        if not r: raise HTTPException(404)
-        if action == "hide":
-            table = "posts" if r["target_type"]=="post" else "comments"
-            await db.execute(f"UPDATE {table} SET is_hidden=1 WHERE id=?", (r["target_id"],))
-        await db.execute("UPDATE reports SET resolved=1 WHERE id=?", (report_id,))
-        await db.commit()
-    return {"ok": True}
-
 # ============ Уведомления ============
 @app.get("/api/notifications")
 async def notifications(user=Depends(current_user)):
-    async with await get_db() as db:
+    async with get_db() as db:
         cur = await db.execute(
             """SELECT * FROM notifications WHERE user_id=?
                ORDER BY created_at DESC LIMIT 50""", (user["id"],))
@@ -349,14 +329,14 @@ async def notifications(user=Depends(current_user)):
 
 @app.post("/api/notifications/read")
 async def mark_read(user=Depends(current_user)):
-    async with await get_db() as db:
+    async with get_db() as db:
         await db.execute("UPDATE notifications SET is_read=1 WHERE user_id=?", (user["id"],))
         await db.commit()
     return {"ok": True}
 
 @app.get("/api/notifications/count")
 async def notif_count(user=Depends(current_user)):
-    async with await get_db() as db:
+    async with get_db() as db:
         cur = await db.execute(
             "SELECT COUNT(*) c FROM notifications WHERE user_id=? AND is_read=0",
             (user["id"],))
@@ -365,7 +345,7 @@ async def notif_count(user=Depends(current_user)):
 # ============ Подписки ============
 @app.post("/api/subscribe/{post_id}")
 async def subscribe(post_id: int, user=Depends(current_user)):
-    async with await get_db() as db:
+    async with get_db() as db:
         cur = await db.execute(
             "SELECT 1 FROM subscriptions WHERE user_id=? AND post_id=?",
             (user["id"], post_id))
@@ -383,17 +363,9 @@ async def subscribe(post_id: int, user=Depends(current_user)):
         await db.commit()
     return {"subscribed": subscribed}
 
-# ============ Загрузка изображений ============
-import httpx
-@app.post("/api/upload")
-async def upload_image(file: bytes = None, user=Depends(current_user)):
-    # Принимаем multipart через UploadFile (упрощённо)
-    raise HTTPException(400, "use /api/upload_file")
-
-from fastapi import UploadFile, File
+# ============ Загрузка файлов ============
 @app.post("/api/upload_file")
 async def upload_file(file: UploadFile = File(...), user=Depends(current_user)):
-    """Загружает файл в Telegram-чат пользователя и возвращает file_id."""
     if file.content_type not in ("image/jpeg","image/png","image/webp"):
         raise HTTPException(400, "only images")
     content = await file.read()
@@ -410,17 +382,33 @@ async def upload_file(file: UploadFile = File(...), user=Depends(current_user)):
         if not data.get("ok"):
             raise HTTPException(500, data)
         file_id = data["result"]["photo"][-1]["file_id"]
-        # сразу удалим сообщение
         await client.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/deleteMessage",
             data={"chat_id": user["id"], "message_id": data["result"]["message_id"]}
         )
     return {"file_id": file_id}
 
+# ============ Картинки ============
+@app.get("/api/image/{post_id}")
+async def get_image(post_id: int):
+    async with get_db() as db:
+        cur = await db.execute("SELECT image_file_id FROM posts WHERE id=?", (post_id,))
+        row = await cur.fetchone()
+    if not row or not row["image_file_id"]:
+        raise HTTPException(404)
+    file_id = row["image_file_id"]
+
+    async with httpx.AsyncClient(timeout=30) as c:
+        r = await c.get(f"https://api.telegram.org/bot{BOT_TOKEN}/getFile",
+                        params={"file_id": file_id})
+        path = r.json()["result"]["file_path"]
+        img = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}")
+    return StreamingResponse(iter([img.content]), media_type="image/jpeg")
+
 # ============ Мои посты ============
 @app.get("/api/my/posts")
 async def my_posts(user=Depends(current_user)):
-    async with await get_db() as db:
+    async with get_db() as db:
         cur = await db.execute("""
             SELECT id,title,tag,score,views,is_hidden,created_at
             FROM posts WHERE author_id=? ORDER BY created_at DESC
@@ -432,13 +420,9 @@ async def my_posts(user=Depends(current_user)):
 async def _startup():
     await init_db()
 
+# Healthcheck
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
+
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],      # разрешаем всем
-    allow_methods=["*"],      # любые действия
-    allow_headers=["*"],      # любые заголовки
-)

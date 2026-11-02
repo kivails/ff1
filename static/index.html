@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Форум</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #fff);
+    --text: var(--tg-theme-text-color, #000);
+    --hint: var(--tg-theme-hint-color, #999);
+    --link: var(--tg-theme-link-color, #2481cc);
+    --card: var(--tg-theme-secondary-bg-color, #f5f5f5);
+    --btn: var(--tg-theme-button-color, #2481cc);
+    --btn-text: var(--tg-theme-button-text-color, #fff);
+    --danger: #e74c3c;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin:0; padding:12px; background:var(--bg); color:var(--text);
+         font-family:-apple-system,Roboto,sans-serif; font-size:15px; padding-bottom:80px; }
+  .card { background:var(--card); border-radius:12px; padding:12px; margin-bottom:10px; }
+  .row { display:flex; align-items:center; gap:8px; }
+  .between { justify-content:space-between; }
+  .hint { color:var(--hint); font-size:13px; }
+  .title { font-weight:600; font-size:16px; margin:6px 0; cursor:pointer; }
+  .body { white-space:pre-wrap; line-height:1.4; word-break:break-word; }
+  button { background:var(--btn); color:var(--btn-text); border:0;
+           border-radius:8px; padding:10px 14px; font-size:15px; cursor:pointer; }
+  button:disabled { opacity:0.5; }
+  button.ghost { background:transparent; color:var(--link); padding:4px 8px; }
+  button.danger { background:var(--danger); }
+  input, textarea, select {
+    width:100%; padding:10px; border-radius:8px; border:1px solid var(--hint);
+    background:var(--bg); color:var(--text); font-size:15px; margin-bottom:8px;
+    font-family:inherit;
+  }
+  .votes { display:flex; flex-direction:column; align-items:center;
+           gap:2px; min-width:36px; }
+  .votes .score { font-weight:600; font-size:14px; }
+  .votes button { background:transparent; color:var(--hint); padding:2px 6px;
+                  font-size:16px; line-height:1; }
+  .votes button.active { color:var(--link); }
+  .comment { padding-left:12px; border-left:2px solid var(--card);
+             margin-left:12px; margin-top:8px; }
+  .tag { display:inline-block; background:var(--btn); color:var(--btn-text);
+         border-radius:6px; padding:2px 8px; font-size:12px; cursor:pointer; }
+  .hidden { display:none; }
+  .fab { position:fixed; right:16px; bottom:16px; width:56px; height:56px;
+         border-radius:50%; font-size:26px; padding:0; box-shadow:0 4px 12px #0003;
+         z-index:10; }
+  .tabs { display:flex; gap:8px; margin-bottom:12px; }
+  .tabs button { flex:1; }
+  .tabs button.inactive { background:transparent; color:var(--link); }
+  .header { display:flex; align-items:center; justify-content:space-between;
+            margin-bottom:12px; gap:8px; }
+  .badge { background:var(--danger); color:#fff; border-radius:10px;
+           padding:1px 7px; font-size:11px; font-weight:600; }
+  .img { max-width:100%; border-radius:8px; margin:8px 0; display:block; }
+  .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+           background:#000c; color:#fff; padding:10px 18px; border-radius:20px;
+           font-size:14px; z-index:999; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show { opacity:1; }
+  .notif { padding:8px 0; border-bottom:1px solid var(--hint); }
+  .notif:last-child { border-bottom:0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready(); tg.expand();
+tg.setHeaderColor?.('secondary_bg_color');
+
+const INIT = tg.initData;
+const ME = tg.initDataUnsafe?.user || {};
+const { useState, useEffect, useCallback, createContext, useContext } = React;
+
+// ---------- API ----------
+async function api(path, opts = {}) {
+  const r = await fetch(path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Init-Data': INIT,
+      ...(opts.headers || {})
+    }
+  });
+  if (!r.ok) {
+    const txt = await r.text();
+    toast('Ошибка: ' + r.status);
+    throw new Error(txt);
+  }
+  return r.json();
+}
+
+// ---------- Toast ----------
+let toastFn;
+function toast(msg) {
+  if (toastFn) toastFn(msg);
+}
+function Toast() {
+  const [msg, setMsg] = useState('');
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    toastFn = (m) => {
+      setMsg(m); setShow(true);
+      setTimeout(() => setShow(false), 2000);
+    };
+  }, []);
+  return React.createElement('div', { className: 'toast ' + (show ? 'show' : '') }, msg);
+}
+
+// ---------- Helpers ----------
+function esc(s) { return String(s || ''); }
+function timeAgo(ts) {
+  const d = new Date(ts + 'Z');
+  const diff = (Date.now() - d) / 1000;
+  if (diff < 60) return 'только что';
+  if (diff < 3600) return Math.floor(diff/60) + ' мин';
+  if (diff < 86400) return Math.floor(diff/3600) + ' ч';
+  return Math.floor(diff/86400) + ' д';
+}
+
+// ---------- VoteButton ----------
+function Votes({ score, myVote, onVote }) {
+  return React.createElement('div', { className: 'votes' },
+    React.createElement('button', {
+      className: myVote === 1 ? 'active' : '',
+      onClick: (e) => { e.stopPropagation(); onVote(myVote === 1 ? 0 : 1); }
+    }, '▲'),
+    React.createElement('span', { className: 'score' }, score),
+    React.createElement('button', {
+      className: myVote === -1 ? 'active' : '',
+      onClick: (e) => { e.stopPropagation(); onVote(myVote === -1 ? 0 : -1); }
+    }, '▼')
+  );
+}
+
+// ---------- PostList ----------
+function PostList({ onOpen, onTagClick }) {
+  const [posts, setPosts] = useState([]);
+  const [sort, setSort] = useState('new');
+  const [tag, setTag] = useState(null);
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async (reset = true) => {
+    if (loading) return;
+    setLoading(true);
+    const p = reset ? 1 : page + 1;
+    const params = new URLSearchParams({ sort, page: p });
+    if (tag) params.set('tag', tag);
+    if (q) params.set('q', q);
+    const data = await api('/api/posts?' + params);
+    setPosts(reset ? data.posts : [...posts, ...data.posts]);
+    setPage(p);
+    setHasMore(data.has_more);
+    setLoading(false);
+  }, [sort, tag, q, page, posts, loading]);
+
+  useEffect(() => { load(true); }, [sort, tag, q]);
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'header' },
+      React.createElement('h2', { style:{margin:0} }, '📋 Форум'),
+      React.createElement('button', {
+        className:'ghost',
+        onClick: () => { location.hash = '#notifications'; }
+      }, '🔔')
+    ),
+    React.createElement('input', {
+      placeholder: '🔍 Поиск...',
+      value: q,
+      onChange: (e) => setQ(e.target.value)
+    }),
+    React.createElement('div', { className: 'tabs' },
+      ['new','top','hot'].map(s =>
+        React.createElement('button', {
+          key: s,
+          className: sort === s ? '' : 'inactive',
+          onClick: () => setSort(s)
+        }, s === 'new' ? '🆕 Новое' : s === 'top' ? '🔥 Топ' : '⚡ Горячее')
+      )
+    ),
+    tag && React.createElement('div', {
+      className:'hint', style:{marginBottom:8}
+    }, 'Тег: ', React.createElement('span', {className:'tag'}, tag),
+       ' ', React.createElement('button', {
+         className:'ghost', onClick:() => setTag(null)
+       }, '✕')),
+    posts.map(p =>
+      React.createElement('div', {
+        key: p.id, className: 'card', onClick: () => onOpen(p.id)
+      },
+        React.createElement('div', { className: 'row' },
+          React.createElement('span', {
+            className: 'tag', onClick: (e) => { e.stopPropagation(); setTag(p.tag); }
+          }, p.tag),
+          React.createElement('span', { className: 'hint' },
+            '@' + (p.username || p.first_name || 'anon') + ' · ' + timeAgo(p.created_at))
+        ),
+        React.createElement('div', { className: 'title' }, p.title),
+        React.createElement('div', { className: 'hint' },
+          '▲ ' + p.score + ' · 💬 ' + p.comments + ' · 👁 ' + p.views)
+      )
+    ),
+    hasMore && React.createElement('button', {
+      style: { width:'100%' }, onClick: () => load(false), disabled: loading
+    }, loading ? '...' : 'Загрузить ещё'),
+    !hasMore && posts.length > 0 && React.createElement('p', {
+      className:'hint', style:{textAlign:'center'}
+    }, '— Конец —')
+  );
+}
+
+// ---------- PostView ----------
+function PostView({ id, onBack }) {
+  const [data, setData] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
+  const [commentText, setCommentText] = useState('');
+
+  const load = useCallback(async () => {
+    const d = await api('/api/posts/' + id);
+    setData(d);
+  }, [id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (!data) return React.createElement('p', {className:'hint'}, 'Загрузка...');
+
+  const { post, comments } = data;
+
+  const doVote = async (type, tid, value) => {
+    await api('/api/vote', { method:'POST', body: JSON.stringify({
+      target_type: type, target_id: tid, value }) });
+    tg.HapticFeedback?.impactOccurred('light');
+    load();
+  };
+
+  const submitComment = async () => {
+    if (!commentText.trim()) return;
+    await api('/api/comments', { method:'POST', body: JSON.stringify({
+      post_id: id, parent_id: replyTo, body: commentText }) });
+    setCommentText(''); setReplyTo(null);
+    tg.HapticFeedback?.notificationOccurred('success');
+    load();
+  };
+
+  const toggleSub = async () => {
+    await api('/api/subscribe/' + id, { method:'POST' });
+    toast(post.subscribed ? 'Отписался' : 'Подписался');
+    load();
+  };
+
+  const report = async () => {
+    await api('/api/report', { method:'POST', body: JSON.stringify({
+      target_type:'post', target_id:id, reason:'inappropriate' }) });
+    toast('Жалоба отправлена');
+  };
+
+  const removePost = async () => {
+    if (!confirm('Удалить пост?')) return;
+    await api('/api/posts/' + id, { method:'DELETE' });
+    onBack();
+  };
+
+  const canModerate = ME.id === post.author_id;
+  const byParent = {};
+  comments.forEach(c => (byParent[c.parent_id || 0] ||= []).push(c));
+
+  const renderTree = (parentId, depth) => (byParent[parentId] || []).map(c =>
+    React.createElement('div', { key: c.id, className: 'comment' },
+      React.createElement('div', { className: 'row between' },
+        React.createElement('div', null,
+          React.createElement('span', { className:'hint' },
+            '@' + (c.username || c.first_name) + ' · ' + timeAgo(c.created_at)),
+          ' ',
+          React.createElement('span', { className:'hint' },
+            '⭐' + (c.author_karma || 0))
+        ),
+        React.createElement(Votes, {
+          score: c.score, myVote: 0,
+          onVote: (v) => doVote('comment', c.id, v)
+        })
+      ),
+      React.createElement('div', { className: 'body', style:{margin:'4px 0'} }, c.body),
+      React.createElement('div', { className:'row' },
+        React.createElement('button', {
+          className:'ghost', onClick: () => { setReplyTo(c.id); }
+        }, '↩ Ответить'),
+        React.createElement('button', {
+          className:'ghost',
+          onClick: async () => {
+            await api('/api/report', { method:'POST', body: JSON.stringify({
+              target_type:'comment', target_id:c.id, reason:'inappropriate' }) });
+            toast('Жалоба отправлена');
+          }
+        }, '🚩')
+      ),
+      depth < 5 ? renderTree(c.id, depth+1) : null
+    )
+  );
+
+  return React.createElement('div', null,
+    React.createElement('button', { className:'ghost', onClick:onBack }, '← Назад'),
+    React.createElement('div', { className: 'card' },
+      React.createElement('div', { className: 'row between' },
+        React.createElement('div', { className: 'row' },
+          React.createElement('span', { className: 'tag' }, post.tag),
+          React.createElement('span', { className:'hint' },
+            '@' + (post.username || post.first_name) + ' · ⭐' + (post.author_karma||0))
+        ),
+        React.createElement(Votes, {
+          score: post.score, myVote: post.my_vote || 0,
+          onVote: (v) => doVote('post', post.id, v)
+        })
+      ),
+      React.createElement('h2', { style:{margin:'8px 0'} }, post.title),
+      post.image_file_id && React.createElement('img', {
+        className:'img', src: '/api/image/' + post.id, alt:''
+      }),
+      React.createElement('div', { className: 'body' }, post.body),
+      React.createElement('div', { className:'row', style:{marginTop:12, flexWrap:'wrap'} },
+        React.createElement('button', {
+          className: post.subscribed ? 'ghost' : '',
+          onClick: toggleSub
+        }, post.subscribed ? '🔕 Отписаться' : '🔔 Подписаться'),
+        React.createElement('button', { className:'ghost', onClick: report }, '🚩'),
+        canModerate && React.createElement('button', {
+          className:'ghost', onClick: removePost, style:{color:'var(--danger)'}
+        }, '🗑')
+      )
+    ),
+    React.createElement('h3', null, '💬 Комментарии (' + comments.length + ')'),
+    replyTo && React.createElement('div', { className:'hint', style:{marginBottom:4} },
+      'Ответ на #' + replyTo + ' ',
+      React.createElement('button', {
+        className:'ghost', onClick: () => setReplyTo(null)
+      }, '✕')),
+    React.createElement('textarea', {
+      rows: 3, placeholder:'Ваш комментарий...',
+      value: commentText, onChange: e => setCommentText(e.target.value)
+    }),
+    React.createElement('button', { onClick: submitComment }, 'Отправить'),
+    renderTree(0, 0)
+  );
+}
+
+// ---------- Compose ----------
+function Compose({ onCreated }) {
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [tag, setTag] = useState('general');
+  const [fileId, setFileId] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  const submit = async () => {
+    if (!title.trim()) return toast('Введите заголовок');
+    const r = await api('/api/posts', { method:'POST', body: JSON.stringify({
+      title, body, tag, image_file_id: fileId }) });
+    tg.HapticFeedback?.notificationOccurred('success');
+    onCreated(r.id);
+  };
+
+  const uploadFile = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('file', f);
+    const r = await fetch('/api/upload_file', {
+      method:'POST',
+      headers: { 'X-Init-Data': INIT },
+      body: fd
+    }).then(r => r.json());
+    setUploading(false);
+    if (r.file_id) { setFileId(r.file_id); toast('Картинка загружена'); }
+  };
+
+  return React.createElement('div', null,
+    React.createElement('h2', null, '✍️ Новый пост'),
+    React.createElement('input', {
+      placeholder:'Заголовок', maxLength:200,
+      value: title, onChange: e => setTitle(e.target.value)
+    }),
+    React.createElement('input', {
+      placeholder:'Тег (general, news, ...)', value:tag,
+      onChange: e => setTag(e.target.value)
+    }),
+    React.createElement('textarea', {
+      rows: 8, placeholder:'Текст...',
+      value: body, onChange: e => setBody(e.target.value)
+    }),
+    React.createElement('input', {
+      type:'file', accept:'image/*', onChange: uploadFile
+    }),
+    uploading && React.createElement('p', {className:'hint'}, 'Загрузка...'),
+    fileId && React.createElement('p', {className:'hint'}, '✓ Картинка прикреплена'),
+    React.createElement('button', { onClick: submit }, 'Опубликовать')
+  );
+}
+
+// ---------- Notifications ----------
+function Notifications({ onBack }) {
+  const [items, setItems] = useState([]);
+  useEffect(() => {
+    api('/api/notifications').then(setItems);
+    api('/api/notifications/read', { method:'POST' });
+  }, []);
+  return React.createElement('div', null,
+    React.createElement('button', { className:'ghost', onClick:onBack }, '← Назад'),
+    React.createElement('h2', null, '🔔 Уведомления'),
+    items.length === 0 && React.createElement('p', {className:'hint'}, 'Пока пусто'),
+    items.map(n => React.createElement('div', {
+      key: n.id,
+      className:'notif' + (n.is_read ? ' hint' : ''),
+      onClick: () => { location.hash = '#post/' + n.payload.post_id; }
+    },
+      React.createElement('div', {className:'hint'},
+        timeAgo(n.created_at) + (n.is_read ? '' : ' · новое')),
+      React.createElement('div', null,
+        n.type === 'reply'
+          ? '💬 @' + n.payload.from + ': ' + n.payload.preview
+          : n.type)
+    ))
+  );
+}
+
+// ---------- Profile ----------
+function Profile({ onBack }) {
+  const [data, setData] = useState(null);
+  const [myPosts, setMyPosts] = useState([]);
+  useEffect(() => {
+    api('/api/users/' + ME.id).then(setData);
+    api('/api/my/posts').then(setMyPosts);
+  }, []);
+  if (!data) return React.createElement('p', {className:'hint'}, 'Загрузка...');
+  return React.createElement('div', null,
+    React.createElement('button', { className:'ghost', onClick:onBack }, '← Назад'),
+    React.createElement('div', { className:'card' },
+      React.createElement('h2', {style:{margin:0}},
+        '@' + (data.username || data.first_name)),
+      React.createElement('p', null, '⭐ Карма: ', React.createElement('b', null, data.karma)),
+      React.createElement('p', null, '📝 Постов: ', React.createElement('b', null, data.posts_count)),
+      React.createElement('p', {className:'hint'}, 'С нами с ' + new Date(data.created_at).toLocaleDateString())
+    ),
+    React.createElement('h3', null, 'Мои посты'),
+    myPosts.map(p => React.createElement('div', {
+      key: p.id, className:'card',
+      onClick: () => { location.hash = '#post/' + p.id; }
+    },
+      React.createElement('div', {className:'hint'},
+        p.tag + ' · ' + timeAgo(p.created_at) + (p.is_hidden ? ' · скрыт' : '')),
+      React.createElement('div', {className:'title'}, p.title),
+      React.createElement('div', {className:'hint'},
+        '▲ ' + p.score + ' · 👁 ' + p.views)
+    ))
+  );
+}
+
+// ---------- App Router ----------
+function App() {
+  const [route, setRoute] = useState(location.hash.slice(1) || '');
+  useEffect(() => {
+    const h = () => setRoute(location.hash.slice(1) || '');
+    window.addEventListener('hashchange', h);
+    return () => window.removeEventListener('hashchange', h);
+  }, []);
+
+  const back = () => { location.hash = ''; };
+
+  let content;
+  if (route.startsWith('post/')) {
+    content = React.createElement(PostView, {
+      id: parseInt(route.slice(5)), onBack: back });
+  } else if (route === 'compose') {
+    content = React.createElement(Compose, {
+      onCreated: (id) => { location.hash = '#post/' + id; } });
+  } else if (route === 'notifications') {
+    content = React.createElement(Notifications, { onBack: back });
+  } else if (route === 'profile') {
+    content = React.createElement(Profile, { onBack: back });
+  } else {
+    content = React.createElement(PostList, {
+      onOpen: (id) => { location.hash = '#post/' + id; },
+      onTagClick: () => {}
+    });
+  }
+
+  return React.createElement('div', null,
+    content,
+    React.createElement(Toast, null),
+    route === '' && React.createElement('div', null,
+      React.createElement('button', {
+        className:'fab', onClick: () => { location.hash = '#compose'; }
+      }, '+'),
+      React.createElement('button', {
+        className:'ghost',
+        style: { position:'fixed', left:16, bottom:16 },
+        onClick: () => { location.hash = '#profile'; }
+      }, '👤 Профиль')
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  React.createElement(App)
+);
+</script>
+</body>
+</html>

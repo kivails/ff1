@@ -10,8 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, 
     bio TEXT DEFAULT '', custom_nick TEXT, theme TEXT DEFAULT 'neon',
     crystals INTEGER DEFAULT 0, frame TEXT DEFAULT 'none',
-    is_banned INTEGER DEFAULT 0, ban_reason TEXT, 
-    referred_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    is_banned INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT, author_id INTEGER NOT NULL, 
@@ -42,7 +41,6 @@ CREATE TABLE IF NOT EXISTS reactions (
 CREATE TABLE IF NOT EXISTS tags (
     name TEXT PRIMARY KEY, color TEXT DEFAULT '#ff007f', posts_count INTEGER DEFAULT 0
 );
-CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
 CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(title, body, content='posts', content_rowid='id');
 """
 

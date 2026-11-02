@@ -1,4 +1,4 @@
-import os, random
+import os, random, asyncio
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import WebAppInfo, MenuButtonCommands
@@ -13,87 +13,76 @@ ADMIN_IDS = {5024935475}
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
 
+# Внутренний пинг для Render
+async def keep_alive():
+    while True:
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.get(f"{APP_URL}/ping")
+        except: pass
+        await asyncio.sleep(300) # Пинг каждые 5 минут
+
 @dp.message(CommandStart())
 async def start_cmd(message: types.Message):
-    args = message.text.split()
-    if len(args) > 1 and args[1].startswith("profile_"):
-        target_id = args[1].replace("profile_", "")
-        await message.answer(f"👤 Профиль пользователя: {APP_URL}/#profile/{target_id}")
-        return
-
-    GIF_URL = "https://media.giphy.com/media/3o7TKu8gT2t2L8b0nS/giphy.gif"
+    GIF_URL = "https://media.tenor.com/7X5y8y7X5y8AAAAC/anime-girl.gif"
     kb = InlineKeyboardBuilder()
     kb.button(text="📖 Открыть RaReads", web_app=WebAppInfo(url=APP_URL))
     await message.answer_animation(animation=GIF_URL, caption=f"Привет, <b>{message.from_user.first_name}</b>! ⛩️\n\nДобро пожаловать в RaReads!", parse_mode="HTML", reply_markup=kb.as_markup())
 
-@dp.message(Command("me"))
-async def me_cmd(message: types.Message):
-    link = f"https://t.me/{(await bot.get_me()).username}?start=profile_{message.from_user.id}"
-    await message.answer(f"👤 Твой профиль:\n<code>{link}</code>", parse_mode="HTML")
+@dp.message(Command("radio"))
+async def radio_cmd(message: types.Message):
+    await message.answer("🎵 Переключить радио можно в настройках приложения (нажми на шестеренку ⚙️)")
 
-@dp.message(Command("daily"))
-async def daily_cmd(message: types.Message):
+@dp.message(Command("ach"))
+async def ach_cmd(message: types.Message):
     async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT last_daily FROM users WHERE id=?", (message.from_user.id,))
-        last = await cur.fetchone()
-        now = datetime.datetime.utcnow()
-        if last and last[0] and (now - datetime.datetime.fromisoformat(last[0])).total_seconds() < 86400:
-            return await message.answer("⏳ Возвращайся завтра!")
-        await db.execute("UPDATE users SET crystals = crystals + 5, last_daily = ? WHERE id=?", (now.isoformat(), message.from_user.id))
+        cur = await db.execute("SELECT ach_name FROM achievements WHERE user_id=?", (message.from_user.id,))
+        achs = [r[0] for r in await cur.fetchall()]
+    if not achs: return await message.answer("У тебя пока нет достижений. Напиши первый пост!")
+    await message.answer(f"🏆 Твои достижения:\n" + "\n".join(achs))
+
+@dp.message(F.audio | F.document) 
+async def handle_music(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS: return
+    file_id = message.audio.file_id if message.audio else message.document.file_id
+    async with aiosqlite.connect(DB) as db:
+        await db.execute("UPDATE settings SET value=? WHERE key='bg_music_1'", (file_id,))
         await db.commit()
-    await message.answer("🎁 Ежедневная награда: +5 💎!")
-
-@dp.message(Command("shop"))
-async def shop_cmd(message: types.Message):
-    await message.answer("🛍️ <b>Магазин:</b>\n💖 Сердечко - 10 💎\n⭐ Звезда - 30 💎\n👑 Корона - 100 💎\n\nКупить можно в приложении в профиле!")
-
-@dp.message(Command("top"))
-async def top_cmd(message: types.Message):
-    async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT first_name, score FROM users u JOIN posts p ON u.id=p.author_id GROUP BY u.id ORDER BY SUM(p.score) DESC LIMIT 5")
-        rows = await cur.fetchall()
-    text = "🏆 <b>Топ-5 авторов:</b>\n\n" + "\n".join([f"{i+1}. {r[0]} — {r[1]} очков" for i, r in enumerate(rows)])
-    await message.answer(text, parse_mode="HTML")
+    await message.answer("🎵 Музыка обновлена!")
 
 @dp.message(Command("admin"))
 async def admin_cmd(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS: return await message.answer("Нет доступа")
-    await message.answer("🛡️ Админ-команды:\n/ban <id> - забанить\n/give_crystals <id> <кол-во>\n/badge <id> <эмодзи>\n/tag <название> <цвет>")
+    if message.from_user.id not in ADMIN_IDS: return
+    await message.answer("🛡️ Админ-команды:\n/ban <id>\n/give_crystals <id> <кол-во>\n/badge <id> <эмодзи>\n/tag <название> <#цвет>\n\nОтправь аудио, чтобы сменить музыку.")
 
 @dp.message(Command("ban"))
 async def ban_cmd(message: types.Message):
     if message.from_user.id not in ADMIN_IDS: return
-    try:
-        target_id = int(message.text.split()[1])
-        async with aiosqlite.connect(DB) as db:
-            await db.execute("UPDATE users SET is_banned=1 WHERE id=?", (target_id,))
-            await db.commit()
-        await message.answer(f"🚫 Пользователь {target_id} забанен.")
-    except: await message.answer("Формат: /ban <id>")
+    target_id = int(message.text.split()[1])
+    async with aiosqlite.connect(DB) as db:
+        await db.execute("UPDATE users SET is_banned=1 WHERE id=?", (target_id,))
+        await db.commit()
+    await message.answer(f"🚫 Забанен.")
 
 @dp.message(Command("give_crystals"))
 async def give_crystals(message: types.Message):
     if message.from_user.id not in ADMIN_IDS: return
-    try:
-        args = message.text.split()
-        target_id, amount = int(args[1]), int(args[2])
-        async with aiosqlite.connect(DB) as db:
-            await db.execute("UPDATE users SET crystals = crystals + ? WHERE id=?", (amount, target_id))
-            await db.commit()
-        await message.answer(f"✅ Выдано {amount} 💎 пользователю {target_id}")
-    except: await message.answer("Формат: /give_crystals <id> <кол-во>")
+    args = message.text.split()
+    target_id, amount = int(args[1]), int(args[2])
+    async with aiosqlite.connect(DB) as db:
+        await db.execute("UPDATE users SET crystals = crystals + ? WHERE id=?", (amount, target_id))
+        await db.commit()
+    await message.answer(f"✅ Выдано {amount} 💎")
 
 @dp.message(Command("badge"))
 async def badge_cmd(message: types.Message):
     if message.from_user.id not in ADMIN_IDS: return
-    try:
-        args = message.text.split()
-        target_id, badge = int(args[1]), args[2]
-        async with aiosqlite.connect(DB) as db:
-            await db.execute("UPDATE users SET badge = ? WHERE id=?", (badge, target_id))
-            await db.commit()
-        await message.answer(f"✅ Значок {badge} выдан {target_id}")
-    except: await message.answer("Формат: /badge <id> <эмодзи>")
+    args = message.text.split()
+    target_id, badge = int(args[1]), args[2]
+    async with aiosqlite.connect(DB) as db:
+        await db.execute("UPDATE users SET badge = ? WHERE id=?", (badge, target_id))
+        await db.commit()
+    await message.answer(f"✅ Значок выдан.")
 
 @dp.message(Command("tag"))
 async def create_tag(message: types.Message):
@@ -122,10 +111,11 @@ async def mod_action(callback: types.CallbackQuery):
 async def set_commands():
     await bot.set_my_commands([
         types.BotCommand(command="start", description="Запустить ⛩️"),
-        types.BotCommand(command="me", description="Моя ссылка 🔗"),
-        types.BotCommand(command="daily", description="Награда 🎁"),
-        types.BotCommand(command="shop", description="Магазин 🛍️"),
-        types.BotCommand(command="top", description="Топ 🏆"),
+        types.BotCommand(command="ach", description="Мои достижения 🏆"),
+        types.BotCommand(command="radio", description="Радио 🎵"),
         types.BotCommand(command="admin", description="Админ 🛡️"),
     ])
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+
+async def start_keep_alive():
+    asyncio.create_task(keep_alive())

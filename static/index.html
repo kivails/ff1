@@ -14,16 +14,14 @@
     --text: #fff; --muted: #a0a0a0; --accent: #ff007f; --accent-glow: rgba(255,0,127,0.6);
     --cyan: #00f0ff; --cyan-glow: rgba(0,240,255,0.6);
   }
-  /* Темы */
-  .theme-sakura { --bg: #2d1b2e; --accent: #ffb7c5; --accent-glow: rgba(255,183,197,0.6); --cyan: #ff8da1; --cyan-glow: rgba(255,141,161,0.6); }
-  .theme-cyber { --bg: #050505; --accent: #fcee0a; --accent-glow: rgba(252,238,10,0.6); --cyan: #00f0ff; --cyan-glow: rgba(0,240,255,0.6); }
-  .theme-dark { --bg: #111; --accent: #888; --accent-glow: rgba(136,136,136,0.4); --cyan: #ccc; --cyan-glow: rgba(204,204,204,0.4); }
+  .theme-sakura { --bg: #2d1b2e; --text: #fff0f5; --accent: #ffb7c5; --accent-glow: rgba(255,183,197,0.6); --cyan: #ff8da1; --cyan-glow: rgba(255,141,161,0.6); }
+  .theme-cyber { --bg: #050505; --text: #fcee0a; --accent: #fcee0a; --accent-glow: rgba(252,238,10,0.6); --cyan: #00f0ff; --cyan-glow: rgba(0,240,255,0.6); }
+  .theme-dark { --bg: #111; --text: #ccc; --accent: #888; --accent-glow: rgba(136,136,136,0.4); --cyan: #aaa; --cyan-glow: rgba(170,170,170,0.4); }
   
   * { box-sizing: border-box; font-family: 'Nunito', sans-serif; }
-  body { margin: 0; padding: 16px; padding-bottom: 100px; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.3s; }
+  body { margin: 0; padding: 16px; padding-bottom: 100px; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.3s, color 0.3s; }
   
   .card { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-  
   .row { display: flex; align-items: center; gap: 12px; }
   .between { justify-content: space-between; }
   .hint { color: var(--muted); font-size: 13px; font-weight: 700; }
@@ -37,6 +35,7 @@
   input:focus, textarea:focus { border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan-glow); }
   
   .tag { display: inline-block; background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); border-radius: 8px; padding: 4px 12px; font-size: 12px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+  .glow-tag { text-shadow: 0 0 10px currentColor; }
   
   .fab { position: fixed; right: 20px; bottom: 30px; width: 64px; height: 64px; border-radius: 50%; font-size: 32px; padding: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--cyan), #0055ff); box-shadow: 0 0 20px var(--cyan-glow); }
   .fab-profile { position: fixed; left: 20px; bottom: 30px; width: 64px; height: 64px; border-radius: 50%; font-size: 24px; padding: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); border: 1px solid var(--accent); color: var(--accent); backdrop-filter: blur(10px); }
@@ -44,10 +43,11 @@
   .votes { display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .votes .score { font-weight: 900; font-size: 18px; color: var(--cyan); text-shadow: 0 0 10px var(--cyan-glow); }
   .votes button { background: transparent; color: var(--muted); padding: 0; font-size: 24px; box-shadow: none; }
-  .votes button.active { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
   
   .comment { padding: 10px; border-left: 3px solid var(--accent); margin-left: 15px; margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 0 10px 10px 0; }
-  .glow-tag { text-shadow: 0 0 10px currentColor; }
+  .reactions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .reaction-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 20px; padding: 4px 10px; font-size: 16px; cursor: pointer; color: #fff; box-shadow: none; }
+  .reaction-btn.active { background: rgba(255,0,127,0.2); border-color: var(--accent); }
   
   .loading { text-align: center; color: var(--cyan); margin-top: 60px; font-size: 18px; font-weight: 900; animation: pulse 1.5s infinite; }
   @keyframes pulse { 50% { opacity: 0.5; } }
@@ -71,7 +71,6 @@
     return r.json();
   }
 
-  // Компонент Поста
   function PostView({ id, onBack, onProfile }) {
     const [data, setData] = useState(null);
     const [text, setText] = useState('');
@@ -86,6 +85,7 @@
       try { await api('/api/comments', { method:'POST', body: JSON.stringify({ post_id: id, parent_id: null, body: text }) }); setText(''); load(); }
       catch(e) { alert(e.message); }
     };
+    const react = async (emoji) => { await api('/api/react', { method:'POST', body: JSON.stringify({ post_id: id, emoji }) }); load(); };
 
     return e('div', null,
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
@@ -96,7 +96,10 @@
         ),
         e('h2', { className: 'title' }, post.title),
         post.image_file_id && e('img', { src: '/api/image/' + post.id, style: {width:'100%', borderRadius:12, marginBottom:12} }),
-        e('div', { className: 'body', style:{whiteSpace:'pre-wrap', lineHeight:1.6} }, post.body),
+        e('div', { style:{whiteSpace:'pre-wrap', lineHeight:1.6} }, post.body),
+        e('div', { className: 'reactions' },
+          ['💖', '😂', '🔥', '😭'].map(r => e('button', { key: r, className: 'reaction-btn' + (post.my_reactions?.includes(r) ? ' active' : ''), onClick: () => react(r) }, r))
+        ),
         e('div', { className: 'row between', style:{marginTop:16} },
           e('div', { className: 'votes' },
             e('button', { onClick: () => api('/api/vote', {method:'POST', body:JSON.stringify({target_type:'post', target_id:post.id, value:1})}).then(load) }, '▲'),
@@ -111,12 +114,11 @@
       e('button', { onClick: submit, style: {marginBottom: 16, width: '100%'} }, 'Отправить'),
       comments.map(c => e('div', { key: c.id, className: 'comment' },
         e('div', { className: 'hint', onClick: () => onProfile(c.author_id) }, `@${c.custom_nick || c.username || c.first_name}`),
-        e('div', { style: {color: '#fff', marginTop: 4} }, c.body)
+        e('div', { style: {marginTop: 4} }, c.body)
       ))
     );
   }
 
-  // Профиль
   function Profile({ userId, onBack }) {
     const [profile, setProfile] = useState(null);
     const [editMode, setEditMode] = useState(false);
@@ -129,15 +131,13 @@
     if (!profile) return e('div', {className:'loading'}, 'Смотрим профиль...');
     const isMe = profile.id === ME.id;
 
-    const save = async () => {
-      await api('/api/profile', { method:'POST', body: JSON.stringify({ custom_nick: nick, bio: bio }) });
-      setEditMode(false); load();
-    };
+    const save = async () => { await api('/api/profile', { method:'POST', body: JSON.stringify({ custom_nick: nick, bio: bio }) }); setEditMode(false); load(); };
+    const refLink = `https://t.me/${tg.initDataUnsafe?.start_param || 'bot'}?start=ref_${profile.id}`; // Упрощенно
 
     return e('div', null,
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
       e('div', { className: 'card', style: {textAlign: 'center'} },
-        e('img', { src: ME.photo_url || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + profile.id, style: {width: 100, height: 100, borderRadius: '50%', border: '3px solid var(--accent)', boxShadow: '0 0 20px var(--accent-glow)'} }),
+        e('img', { src: `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.id}`, style: {width: 100, height: 100, borderRadius: '50%', border: '3px solid var(--accent)', boxShadow: '0 0 20px var(--accent-glow)'} }),
         e('h2', { style: {color: 'var(--accent)', margin: '10px 0 4px'} }, profile.custom_nick || profile.first_name),
         e('p', { className: 'hint' }, `@${profile.username || 'no_username'} · ID: ${profile.id}`),
         
@@ -147,24 +147,28 @@
           e('button', { onClick: save, style: {width:'100%'} }, 'Сохранить')
         ) : e('div', null,
           e('p', { style: {fontStyle: 'italic', margin: '12px 0'} }, profile.bio || 'Тут пока пусто...'),
-          isMe && e('button', { onClick: () => setEditMode(true), className: 'ghost', style: {width: '100%'} }, '✏️ Редактировать профиль')
+          isMe && e('button', { onClick: () => setEditMode(true), className: 'ghost', style: {width: '100%'} }, '✏️ Редактировать')
         ),
 
         e('div', { className: 'row between', style: {marginTop: 20, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 12} },
           e('div', null, e('div', {className:'hint'}, 'Карма'), e('b', {style:{color:'var(--cyan)'}}, profile.karma)),
-          e('div', null, e('div', {className:'hint'}, 'Постов'), e('b', null, profile.posts_count)),
-          e('div', null, e('div', {className:'hint'}, 'Топ пост'), e('b', {style:{fontSize:12}}, profile.top_post ? profile.top_post.title.slice(0,10)+'...' : 'Нет'))
+          e('div', null, e('div', {className:'hint'}, 'Уровень'), e('b', null, profile.level)),
+          e('div', null, e('div', {className:'hint'}, 'Постов'), e('b', null, profile.posts_count))
         ),
         profile.fav_tags?.length > 0 && e('div', { style: {marginTop: 12} },
           e('div', {className:'hint', marginBottom: 4}, 'Любимые теги:'),
           profile.fav_tags.map(t => e('span', { key: t, className: 'tag', style: {margin: 2} }, t))
+        ),
+        isMe && e('div', { style: {marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--glass-border)'} },
+          e('div', {className:'hint'}, '🔗 Твоя реферальная ссылка:'),
+          e('div', {style:{fontSize: 12, wordBreak: 'break-all', color: 'var(--cyan)'}}, refLink),
+          e('div', {className:'hint', style:{marginTop:8}}, `Приглашено: ${profile.ref_count}`)
         )
       )
     );
   }
 
-  // Настройки
-  function Settings({ onBack, setTheme }) {
+  function Settings({ onBack, setTheme, music, setMusic }) {
     return e('div', null,
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
       e('h2', null, '⚙️ Настройки'),
@@ -175,12 +179,13 @@
             key: t, className: 'ghost', onClick: () => setTheme(t),
             style: {flex: 1, margin: 4, padding: '12px 0'}
           }, t.toUpperCase()))
-        )
+        ),
+        e('h3', {marginTop: 20}, 'Музыка'),
+        e('button', { onClick: () => setMusic(!music), className: music ? '' : 'ghost', style: {width: '100%'} }, music ? '🔊 Выключить радио' : '🔇 Включить радио')
       )
     );
   }
 
-  // Создание поста
   function Compose({ onBack, onCreated }) {
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
@@ -198,7 +203,7 @@
           fileId = res.file_id;
         }
         await api('/api/posts', { method:'POST', body: JSON.stringify({ title, body, tag, image_file_id: fileId }) });
-        alert('Пост отправлен на модерацию! (Или опубликован)');
+        alert('Пост отправлен на модерацию!');
         onCreated();
       } catch(e) { alert(e.message); } finally { setLoading(false); }
     };
@@ -214,10 +219,10 @@
     );
   }
 
-  // Главная страница
   function App() {
     const [route, setRoute] = useState({ view: 'list' });
     const [theme, setThemeState] = useState(localStorage.getItem('theme') || 'neon');
+    const [music, setMusic] = useState(localStorage.getItem('music') === 'true');
     const [posts, setPosts] = useState([]);
     const [tags, setTags] = useState([]);
     const [activeTag, setActiveTag] = useState(null);
@@ -228,11 +233,23 @@
     }, [activeTag]);
 
     const setTheme = (t) => { setThemeState(t); localStorage.setItem('theme', t); };
+    const setMusicPref = (m) => { setMusic(m); localStorage.setItem('music', m); };
+
+    // Музыка
+    useEffect(() => {
+      let audio;
+      if (music) {
+        audio = new Audio('https://stream.volnorez.com/live/radio-russkie-pesni'); // Пример потока [citation:25]
+        audio.loop = false; audio.volume = 0.3;
+        audio.play().catch(() => {});
+      }
+      return () => { if (audio) audio.pause(); };
+    }, [music]);
 
     if (route.view === 'post') return e(PostView, { id: route.id, onBack: () => setRoute({view:'list'}), onProfile: id => setRoute({view:'profile', id}) });
     if (route.view === 'compose') return e(Compose, { onBack: () => setRoute({view:'list'}), onCreated: () => { setRoute({view:'list'}); setActiveTag(null); } });
     if (route.view === 'profile') return e(Profile, { userId: route.id, onBack: () => setRoute({view:'list'}) });
-    if (route.view === 'settings') return e(Settings, { onBack: () => setRoute({view:'list'}), setTheme });
+    if (route.view === 'settings') return e(Settings, { onBack: () => setRoute({view:'list'}), setTheme, music, setMusic: setMusicPref });
 
     return e('div', { className: `theme-${theme}` },
       e('div', { className: 'row between', style: {marginBottom: 16} },
@@ -240,7 +257,6 @@
         e('button', { className: 'ghost', onClick: () => setRoute({view:'settings'}) }, '⚙️')
       ),
       
-      // Теги
       e('div', { style: {display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 10, marginBottom: 10} },
         e('span', { className: 'tag', onClick: () => setActiveTag(null), style: {borderColor: !activeTag ? 'var(--accent)' : ''} }, 'Все'),
         tags.map(t => e('span', {
@@ -256,7 +272,10 @@
           e('span', { className: 'hint' }, `@${p.custom_nick || p.username || p.first_name}`)
         ),
         e('div', { className: 'title' }, p.title),
-        e('div', { className: 'hint' }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`)
+        e('div', { className: 'hint' }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`),
+        e('div', { className: 'reactions' },
+          Object.entries(p.reactions || {}).map(([emoji, count]) => e('span', { key: emoji, className: 'reaction-btn' }, `${emoji} ${count}`))
+        )
       )),
 
       e('button', { className: 'fab', onClick: () => setRoute({view:'compose'}) }, '+'),
@@ -264,9 +283,7 @@
     );
   }
 
-  // Применяем тему к body
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(e(App));
+  ReactDOM.createRoot(document.getElementById('root')).render(e(App));
 </script>
 </body>
 </html>

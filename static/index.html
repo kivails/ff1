@@ -9,7 +9,6 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Pacifico&display=swap" rel="stylesheet">
 <style>
-  /* ... (стили остаются как были) ... */
   :root { --bg-img: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop'); --text: #f0f0f0; --accent: #ffb7c5; --accent-glow: rgba(255,183,197,0.4); --glass: rgba(20, 20, 30, 0.6); --border: rgba(255,255,255,0.1); }
   .theme-sakura { --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000'); --text: #fff0f5; --accent: #ff8da1; --accent-glow: rgba(255,141,161,0.4); --glass: rgba(45, 27, 46, 0.6); }
   .theme-sunset { --bg-img: url('https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000'); --text: #ffebd6; --accent: #ff9a76; --accent-glow: rgba(255,154,118,0.4); --glass: rgba(50, 20, 10, 0.6); }
@@ -57,7 +56,158 @@
     return r.json();
   }
 
-  // ... (компоненты CommentItem, PostView, Profile, Compose, Settings остаются как в предыдущем сообщении)
+  function CommentItem({ c, onProfile }) {
+    const react = async (emoji) => { await api('/api/react', { method:'POST', body: JSON.stringify({ target_type: 'comment', target_id: c.id, emoji }) }); };
+    return e('div', { className: 'card', style: {padding: 12, marginBottom: 8} }, 
+        e('div', { className: 'hint', onClick: () => onProfile(c.author_id) }, `${c.badge || ''} @${c.custom_nick || c.username}`), 
+        e('div', {style: {marginTop: 4, fontSize: 14}}, c.body),
+        e('div', {style: {marginTop: 8, display: 'flex', gap: 6}}, ['💖', '😂', '🔥'].map(r => e('button', {key: r, className: 'reaction-btn', onClick: () => react(r), style: {padding: '2px 6px', fontSize: 12}}, r)))
+    );
+  }
+
+  function PostView({ id, onBack, onProfile, theme }) {
+    const [data, setData] = useState(null); const [text, setText] = useState('');
+    const load = () => api('/api/posts/' + id).then(setData);
+    useEffect(() => { load(); }, [id]);
+    if (!data) return e('div', {className:'loading'}, 'Читаем...');
+    const { post, comments } = data;
+    const submit = async () => { if(!text.trim()) return; try { await api('/api/comments', { method:'POST', body: JSON.stringify({ post_id: id, parent_id: null, body: text }) }); setText(''); load(); } catch(e) { alert(e.message); } };
+    const react = async (emoji) => { try { await api('/api/react', { method:'POST', body: JSON.stringify({ target_type: 'post', target_id: id, emoji }) }); load(); } catch(e) { alert(e.message); } };
+    const vote = async (val) => { try { await api('/api/vote', { method:'POST', body: JSON.stringify({ target_type: 'post', target_id: id, value: val }) }); load(); } catch(e) { alert(e.message); } };
+    const del = async () => { if(confirm('Удалить пост?')) { try { await api('/api/posts/' + id, { method: 'DELETE' }); onBack(); } catch(e) { alert(e.message); } } };
+
+    return e('div', {className: `theme-${theme}`},
+      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
+      e('div', { className: 'card' },
+        e('div', { className: 'row between' }, e('span', { className: 'tag' }, post.tags.split(',').map(t => '#'+t.trim()).join(' ')), e('span', { className: 'hint', onClick: () => onProfile(post.author_id) }, `${post.badge} @${post.custom_nick || post.username}`)),
+        e('h2', { className: 'title' }, post.title),
+        post.image_file_id && e('img', { src: '/api/image/' + post.id, style: {width:'100%', borderRadius:12, marginBottom:12} }),
+        e('div', { style:{whiteSpace:'pre-wrap', lineHeight:1.6, fontSize:15} }, post.body),
+        e('div', { style: {display:'flex', gap:8, marginTop:16, flexWrap: 'wrap'} }, ['💖', '😂', '🔥', '😭', '👎', '🤔'].map(r => e('button', { key: r, className: 'reaction-btn' + (post.my_reactions?.includes(r) ? ' active' : ''), onClick: () => react(r) }, r))),
+        e('div', { className: 'row between', style:{marginTop:20} },
+          e('div', { style: {display:'flex', alignItems:'center', gap:10} }, 
+            e('button', { className: 'ghost', onClick: () => vote(1), style: {padding: '6px 12px'} }, '▲'), 
+            e('span', { style: {fontWeight:900, fontSize:18, color:'var(--accent)'} }, post.score), 
+            e('button', { className: 'ghost', onClick: () => vote(-1), style: {padding: '6px 12px'} }, '▼')
+          ),
+          e('span', { className: 'hint' }, `👁 ${post.views}`)
+        ),
+        (post.author_id === ME.id || ME.id === 5024935475) && e('button', { className: 'ghost', onClick: del, style: {marginTop: 16, color: 'red', borderColor: 'red'} }, '🗑 Удалить пост')
+      ),
+      e('h3', { style: {color: 'var(--accent)'} }, '💬 Комментарии'),
+      e('textarea', { rows: 2, placeholder: 'Написать...', value: text, onChange: ev => setText(ev.target.value) }),
+      e('button', { onClick: submit, style: {marginBottom: 20, width: '100%'} }, 'Отправить'),
+      comments.map(c => e(CommentItem, { key: c.id, c, onProfile }))
+    );
+  }
+
+  function Profile({ userId, onBack, theme, setTheme }) {
+    const [profile, setProfile] = useState(null); const [editMode, setEditMode] = useState(false);
+    const [nick, setNick] = useState(''); const [bio, setBio] = useState('');
+    const [shopOpen, setShopOpen] = useState(false);
+    const load = () => api('/api/profile/' + (userId || ME.id)).then(p => { setProfile(p); setNick(p.custom_nick || ''); setBio(p.bio || ''); });
+    useEffect(() => { load(); }, [userId]);
+    if (!profile) return e('div', {className:'loading'}, 'Загрузка...');
+    const isMe = profile.id === ME.id;
+    const save = async () => { await api('/api/profile', { method:'POST', body: JSON.stringify({ custom_nick: nick, bio: bio }) }); setEditMode(false); load(); };
+    const buyFrame = async (f) => { try { await api('/api/buy_frame?frame='+f, {method:'POST'}); alert('Куплено!'); load(); } catch(e) { alert(e.message); } };
+
+    const avatarUrl = ME.photo_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.id}`;
+    const refLink = `https://t.me/${tg.initDataUnsafe?.start_param ? 'bot' : 'bot'}?start=ref_${profile.id}`;
+
+    return e('div', {className: `theme-${theme}`},
+      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
+      e('div', { className: 'card', style: {textAlign: 'center'} },
+        e('img', { src: avatarUrl, className: 'frame-'+profile.frame, style: {width: 100, height: 100, borderRadius: '50%', background:'rgba(0,0,0,0.5)', objectFit: 'cover'} }),
+        e('h2', { style: {color: 'var(--accent)', margin: '16px 0 4px'} }, `${profile.badge || ''} ${profile.custom_nick || profile.first_name}`),
+        e('p', { className: 'hint' }, `@${profile.username || 'no_username'} · ID: ${profile.id}`),
+        
+        editMode ? e('div', {style: {marginTop:20}},
+          e('input', { placeholder: 'Ник', value: nick, onChange: ev => setNick(ev.target.value) }),
+          e('input', { placeholder: 'О себе', value: bio, onChange: ev => setBio(ev.target.value) }),
+          e('button', { onClick: save, style: {width:'100%'} }, 'Сохранить')
+        ) : e('div', {style: {marginTop:20}},
+          e('p', { style: {fontStyle: 'italic', margin: '12px 0'} }, profile.bio || 'Тут пока пусто...'),
+          isMe && e('button', { onClick: () => setEditMode(true), className: 'ghost', style: {width: '100%'} }, '✏️ Редактировать')
+        ),
+
+        e('div', { className: 'row between', style: {marginTop: 24, background: 'rgba(0,0,0,0.4)', padding: 12, borderRadius: 12} },
+          e('div', null, e('div', {className:'hint'}, 'Карма'), e('b', {style:{color:'var(--accent)'}}, profile.karma)),
+          e('div', null, e('div', {className:'hint'}, 'Кристаллы'), e('b', null, profile.crystals)),
+          e('div', null, e('div', {className:'hint'}, 'Постов'), e('b', null, profile.posts_count || 0))
+        ),
+        
+        e('div', {style:{marginTop:24}}, 
+          e('div', {className:'hint', marginBottom:8}, `Уровень ${profile.level}`), 
+          e('div', {className:'level-bar'}, e('div', {className:'level-fill', style:{width: `${(profile.karma % 10) * 10}%`}}))
+        ),
+
+        profile.top_post && e('div', {style:{marginTop:24, textAlign:'left'}},
+          e('div', {className:'hint', marginBottom:8}, '🔥 Самый популярный пост:'),
+          e('div', {style:{background:'rgba(0,0,0,0.4)', padding:12, borderRadius:12}}, profile.top_post.title)
+        ),
+
+        e('div', {style:{marginTop:24}},
+          e('div', {className:'hint', marginBottom:8}, '🏆 Достижения:'),
+          profile.achievements?.length ? profile.achievements.map(a => e('span', {key: a, className: 'tag', style:{margin:4}}, a)) : e('span', {className:'hint'}, 'Пока нет')
+        ),
+
+        isMe && e('div', {style:{marginTop:24}},
+          e('button', { className: 'ghost', onClick: () => setShopOpen(!shopOpen), style:{width:'100%'} }, '🛍️ Магазин рамок'),
+          shopOpen && e('div', {style:{marginTop:12, display:'flex', flexDirection:'column', gap:8}},
+            e('button', { className: 'ghost', onClick: () => buyFrame('gold') }, '🥇 Золотая рамка (50 💎)'),
+            e('button', { className: 'ghost', onClick: () => buyFrame('fire') }, '🔥 Огненная рамка (100 💎)'),
+            e('button', { className: 'ghost', onClick: () => buyFrame('sakura') }, '🌸 Сакура (150 💎)')
+          )
+        ),
+
+        isMe && e('div', {style:{marginTop:16, padding:12, background:'rgba(0,0,0,0.4)', borderRadius:12}},
+          e('div', {className:'hint', marginBottom:4}, '🔗 Твоя реферальная ссылка:'),
+          e('div', {style:{fontSize:12, wordBreak:'break-all', color:'var(--accent)'}}, refLink)
+        )
+      )
+    );
+  }
+
+  function Settings({ onBack, setTheme, currentTheme, music, setMusic }) {
+    return e('div', {className: `theme-${currentTheme}`},
+      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
+      e('h2', {style:{color:'var(--accent)'}}, '⚙️ Настройки'),
+      e('div', { className: 'card' },
+        e('h3', null, 'Выбор темы'),
+        e('div', { className: 'row', style: {flexWrap: 'wrap', gap: 8} },
+          ['default', 'sakura', 'sunset', 'cyber', 'space'].map(t => e('button', {
+            key: t, className: currentTheme === t ? '' : 'ghost', onClick: () => setTheme(t),
+            style: {flex: 1, margin: 4, padding: '10px 0', textTransform: 'capitalize'}
+          }, t))
+        ),
+        e('h3', {marginTop: 24}, 'Музыка'),
+        e('button', { onClick: () => setMusic(!music), className: music ? '' : 'ghost', style: {width: '100%'} }, music ? '🔊 Выключить музыку' : '🔇 Включить музыку')
+      )
+    );
+  }
+
+  function Compose({ onBack, onCreated, theme }) {
+    const [title, setTitle] = useState(''); const [body, setBody] = useState(''); const [tags, setTags] = useState('general'); const [file, setFile] = useState(null); const [loading, setLoading] = useState(false);
+    const submit = async () => {
+      setLoading(true);
+      try {
+        let fileId = null;
+        if (file) { const fd = new FormData(); fd.append('file', file); const res = await fetch('/api/upload', { method:'POST', headers: {'X-Init-Data': INIT}, body: fd }).then(r => r.json()); fileId = res.file_id; }
+        await api('/api/posts', { method:'POST', body: JSON.stringify({ title, body, tags, image_file_id: fileId }) });
+        alert('Пост отправлен на модерацию!'); onCreated();
+      } catch(e) { alert(e.message); } finally { setLoading(false); }
+    };
+    return e('div', {className: `theme-${theme}`},
+      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Отмена'),
+      e('h2', { style: {color: 'var(--accent)'} }, 'Создать пост'),
+      e('input', { placeholder: 'Заголовок', value: title, onChange: ev => setTitle(ev.target.value) }),
+      e('input', { placeholder: 'Теги (до 3, через запятую)', value: tags, onChange: ev => setTags(ev.target.value) }),
+      e('textarea', { rows: 6, placeholder: 'Текст...', value: body, onChange: ev => setBody(ev.target.value) }),
+      e('input', { type: 'file', accept: 'image/*,image/gif', onChange: ev => setFile(ev.target.files[0]), style:{color:'#fff'} }),
+      e('button', { onClick: submit, style: {width:'100%'}, disabled: loading }, loading ? 'Отправка...' : 'Опубликовать ⛩️')
+    );
+  }
 
   function App() {
     const [route, setRoute] = useState({ view: 'list' });
@@ -76,11 +226,8 @@
     useEffect(() => { 
         const audio = document.getElementById('bg-music');
         if (music && musicUrl) { 
-            // Используем наш новый эндпоинт вместо прямой ссылки
             audio.src = '/api/music'; 
-            audio.play().catch(e => {
-                alert('Нажмите кнопку включения музыки ещё раз, чтобы разрешить звук.');
-            }); 
+            audio.play().catch(e => alert('Нажмите кнопку включения музыки ещё раз, чтобы разрешить звук.')); 
         } else { 
             audio.pause(); 
         }
@@ -89,6 +236,8 @@
     const setTheme = (t) => { setThemeState(t); localStorage.setItem('theme', t); };
 
     if (route.view === 'profile') return e(Profile, { userId: route.id, onBack: () => setRoute({view:'list'}), theme, setTheme });
+    if (route.view === 'post') return e(PostView, { id: route.id, onBack: () => setRoute({view:'list'}), onProfile: id => setRoute({view:'profile', id}), theme });
+    if (route.view === 'compose') return e(Compose, { onBack: () => setRoute({view:'list'}), onCreated: () => setRoute({view:'list'}), theme });
     if (route.view === 'settings') return e(Settings, { onBack: () => setRoute({view:'list'}), setTheme, currentTheme: theme, music, setMusic });
 
     return e('div', { className: `theme-${theme}` },
@@ -99,7 +248,8 @@
       posts.map(p => e('div', { key: p.id, className: 'card', onClick: () => setRoute({view:'post', id: p.id}) },
         e('div', { className: 'row between' }, e('span', { className: 'tag' }, p.tags.split(',').map(t => '#'+t.trim()).join(' ')), e('span', { className: 'hint' }, `${p.badge || ''} @${p.custom_nick || p.username}`)),
         e('div', { className: 'title' }, p.title),
-        e('div', { className: 'hint', marginTop: 8 }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`)
+        e('div', { className: 'hint', marginTop: 8 }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`),
+        e('div', { style: {display: 'flex', gap: 4, marginTop: 8} }, Object.entries(p.reactions || {}).map(([r, c]) => e('span', {key: r, style: {background:'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: 10, fontSize: 12}}, `${r} ${c}`)))
       )),
 
       e('button', { className: 'fab', onClick: () => setRoute({view:'compose'}) }, '+'),

@@ -3,68 +3,111 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Форум</title>
+<title>Anime Forum</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <style>
+  /* Аниме-стилистика: темная тема, неон, стекло */
   :root {
-    --bg: var(--tg-theme-bg-color, #fff);
-    --text: var(--tg-theme-text-color, #000);
-    --hint: var(--tg-theme-hint-color, #999);
-    --link: var(--tg-theme-link-color, #2481cc);
-    --card: var(--tg-theme-secondary-bg-color, #f5f5f5);
-    --btn: var(--tg-theme-button-color, #2481cc);
-    --btn-text: var(--tg-theme-button-text-color, #fff);
-    --danger: #e74c3c;
+    --bg: #0b0c10;
+    --bg-gradient: linear-gradient(135deg, #0b0c10 0%, #1f2833 100%);
+    --glass: rgba(31, 40, 51, 0.6);
+    --border: rgba(102, 252, 241, 0.2);
+    --text: #c5c6c7;
+    --accent: #66fcf1;
+    --accent-dark: #45a29e;
+    --danger: #ff4c4c;
+    --hint: #7f8c8d;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { margin:0; padding:12px; background:var(--bg); color:var(--text);
-         font-family:-apple-system,Roboto,sans-serif; font-size:15px; padding-bottom:80px; }
-  .card { background:var(--card); border-radius:12px; padding:12px; margin-bottom:10px; }
-  .row { display:flex; align-items:center; gap:8px; }
-  .between { justify-content:space-between; }
-  .hint { color:var(--hint); font-size:13px; }
-  .title { font-weight:600; font-size:16px; margin:6px 0; cursor:pointer; }
-  .body { white-space:pre-wrap; line-height:1.4; word-break:break-word; }
-  button { background:var(--btn); color:var(--btn-text); border:0;
-           border-radius:8px; padding:10px 14px; font-size:15px; cursor:pointer; }
-  button:disabled { opacity:0.5; }
-  button.ghost { background:transparent; color:var(--link); padding:4px 8px; }
-  button.danger { background:var(--danger); }
-  input, textarea, select {
-    width:100%; padding:10px; border-radius:8px; border:1px solid var(--hint);
-    background:var(--bg); color:var(--text); font-size:15px; margin-bottom:8px;
-    font-family:inherit;
+  body {
+    margin: 0; padding: 12px; padding-bottom: 90px;
+    background: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: 'Segoe UI', -apple-system, Roboto, sans-serif;
+    min-height: 100vh;
   }
-  .votes { display:flex; flex-direction:column; align-items:center;
-           gap:2px; min-width:36px; }
-  .votes .score { font-weight:600; font-size:14px; }
-  .votes button { background:transparent; color:var(--hint); padding:2px 6px;
-                  font-size:16px; line-height:1; }
-  .votes button.active { color:var(--link); }
-  .comment { padding-left:12px; border-left:2px solid var(--card);
-             margin-left:12px; margin-top:8px; }
-  .tag { display:inline-block; background:var(--btn); color:var(--btn-text);
-         border-radius:6px; padding:2px 8px; font-size:12px; cursor:pointer; }
-  .hidden { display:none; }
-  .fab { position:fixed; right:16px; bottom:16px; width:56px; height:56px;
-         border-radius:50%; font-size:26px; padding:0; box-shadow:0 4px 12px #0003;
-         z-index:10; }
-  .tabs { display:flex; gap:8px; margin-bottom:12px; }
-  .tabs button { flex:1; }
-  .tabs button.inactive { background:transparent; color:var(--link); }
-  .header { display:flex; align-items:center; justify-content:space-between;
-            margin-bottom:12px; gap:8px; }
-  .badge { background:var(--danger); color:#fff; border-radius:10px;
-           padding:1px 7px; font-size:11px; font-weight:600; }
-  .img { max-width:100%; border-radius:8px; margin:8px 0; display:block; }
-  .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
-           background:#000c; color:#fff; padding:10px 18px; border-radius:20px;
-           font-size:14px; z-index:999; opacity:0; transition:opacity .2s; pointer-events:none; }
-  .toast.show { opacity:1; }
-  .notif { padding:8px 0; border-bottom:1px solid var(--hint); }
-  .notif:last-child { border-bottom:0; }
+  /* Стеклянная карточка */
+  .card {
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3), 0 0 10px rgba(102, 252, 241, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .card:active { transform: scale(0.98); }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .between { justify-content: space-between; }
+  .hint { color: var(--hint); font-size: 13px; }
+  .title { font-weight: 700; font-size: 18px; margin: 8px 0; color: #fff; text-shadow: 0 0 5px rgba(102,252,241,0.3); }
+  .body { white-space: pre-wrap; line-height: 1.5; word-break: break-word; }
+
+  /* Кнопки */
+  button {
+    background: linear-gradient(90deg, var(--accent-dark), var(--accent));
+    color: #0b0c10;
+    border: 0; border-radius: 12px; padding: 10px 16px;
+    font-size: 15px; font-weight: bold; cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 10px rgba(102, 252, 241, 0.4);
+  }
+  button:disabled { opacity: 0.5; box-shadow: none; }
+  button.ghost {
+    background: transparent; color: var(--accent); box-shadow: none;
+    border: 1px solid var(--border); padding: 6px 12px;
+  }
+  button.ghost:active { background: rgba(102, 252, 241, 0.1); }
+  button.danger { background: linear-gradient(90deg, #a00, var(--danger)); color: #fff; box-shadow: 0 0 10px rgba(255, 76, 76, 0.4); }
+
+  /* Поля ввода */
+  input, textarea, select {
+    width: 100%; padding: 12px; border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.3); color: var(--accent);
+    font-size: 15px; margin-bottom: 10px; font-family: inherit;
+    outline: none; transition: border 0.2s;
+  }
+  input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 8px rgba(102, 252, 241, 0.2); }
+
+  /* Голосование */
+  .votes { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 36px; }
+  .votes .score { font-weight: 800; font-size: 15px; color: var(--accent); text-shadow: 0 0 5px var(--accent); }
+  .votes button { background: transparent; color: var(--hint); padding: 0; font-size: 20px; line-height: 1; box-shadow: none; }
+  .votes button.active { color: var(--accent); text-shadow: 0 0 8px var(--accent); }
+
+  /* Комментарии */
+  .comment { padding-left: 12px; border-left: 2px solid var(--border); margin-left: 12px; margin-top: 10px; }
+  .tag { display: inline-block; background: rgba(102, 252, 241, 0.1); color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+
+  /* Табы (Новое/Топ) */
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 12px; }
+  .tabs button { flex: 1; background: transparent; color: var(--hint); box-shadow: none; padding: 8px; font-size: 14px; }
+  .tabs button.active { background: rgba(102, 252, 241, 0.15); color: var(--accent); text-shadow: 0 0 5px var(--accent); }
+
+  /* Кнопка плюс (FAB) и Профиль */
+  .fab {
+    position: fixed; right: 20px; bottom: 20px; width: 60px; height: 60px;
+    border-radius: 50%; font-size: 30px; padding: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 20px rgba(102, 252, 241, 0.6);
+  }
+  .fab-profile {
+    position: fixed; left: 20px; bottom: 20px; width: 60px; height: 60px;
+    border-radius: 50%; font-size: 24px; padding: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--glass); border: 1px solid var(--border); color: var(--accent);
+    box-shadow: 0 0 15px rgba(102, 252, 241, 0.2);
+  }
+
+  /* Утилиты */
+  .hidden { display: none !important; }
+  .loading { text-align: center; color: var(--accent); margin-top: 50px; font-size: 18px; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; text-shadow: 0 0 10px var(--accent); } 100% { opacity: 0.5; } }
+  .error-box { background: rgba(255, 76, 76, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 15px; border-radius: 12px; margin: 20px 0; text-align: center; }
 </style>
 </head>
 <body>
@@ -72,444 +115,163 @@
 <script>
 const tg = window.Telegram.WebApp;
 tg.ready(); tg.expand();
-tg.setHeaderColor?.('secondary_bg_color');
-
 const INIT = tg.initData;
-const ME = tg.initDataUnsafe?.user || {};
-const { useState, useEffect, useCallback, createContext, useContext } = React;
 
-// ---------- API ----------
+// Проверка на наличие initData
+if (!INIT) {
+  document.getElementById('root').innerHTML = '<div class="error-box">Ошибка: Приложение открыто вне Telegram!<br>Пожалуйста, откройте его через кнопку в боте.</div>';
+  throw new Error("No initData");
+}
+
+const { useState, useEffect } = React;
+const REACT_E = React.createElement;
+
 async function api(path, opts = {}) {
   const r = await fetch(path, {
     ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Init-Data': INIT,
-      ...(opts.headers || {})
-    }
+    headers: { 'Content-Type': 'application/json', 'X-Init-Data': INIT, ...(opts.headers || {}) }
   });
   if (!r.ok) {
     const txt = await r.text();
-    toast('Ошибка: ' + r.status);
-    throw new Error(txt);
+    throw new Error(`${r.status}: ${txt}`);
   }
   return r.json();
 }
 
-// ---------- Toast ----------
-let toastFn;
-function toast(msg) {
-  if (toastFn) toastFn(msg);
-}
-function Toast() {
-  const [msg, setMsg] = useState('');
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    toastFn = (m) => {
-      setMsg(m); setShow(true);
-      setTimeout(() => setShow(false), 2000);
-    };
-  }, []);
-  return React.createElement('div', { className: 'toast ' + (show ? 'show' : '') }, msg);
-}
-
-// ---------- Helpers ----------
-function esc(s) { return String(s || ''); }
-function timeAgo(ts) {
-  const d = new Date(ts + 'Z');
-  const diff = (Date.now() - d) / 1000;
-  if (diff < 60) return 'только что';
-  if (diff < 3600) return Math.floor(diff/60) + ' мин';
-  if (diff < 86400) return Math.floor(diff/3600) + ' ч';
-  return Math.floor(diff/86400) + ' д';
-}
-
-// ---------- VoteButton ----------
-function Votes({ score, myVote, onVote }) {
-  return React.createElement('div', { className: 'votes' },
-    React.createElement('button', {
-      className: myVote === 1 ? 'active' : '',
-      onClick: (e) => { e.stopPropagation(); onVote(myVote === 1 ? 0 : 1); }
-    }, '▲'),
-    React.createElement('span', { className: 'score' }, score),
-    React.createElement('button', {
-      className: myVote === -1 ? 'active' : '',
-      onClick: (e) => { e.stopPropagation(); onVote(myVote === -1 ? 0 : -1); }
-    }, '▼')
-  );
-}
-
-// ---------- PostList ----------
-function PostList({ onOpen, onTagClick }) {
-  const [posts, setPosts] = useState([]);
+// --- Компоненты ---
+function PostList({ onOpen, setView }) {
+  const [posts, setPosts] = useState(null);
+  const [error, setError] = useState(null);
   const [sort, setSort] = useState('new');
-  const [tag, setTag] = useState(null);
-  const [q, setQ] = useState('');
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
 
-  const load = useCallback(async (reset = true) => {
-    if (loading) return;
-    setLoading(true);
-    const p = reset ? 1 : page + 1;
-    const params = new URLSearchParams({ sort, page: p });
-    if (tag) params.set('tag', tag);
-    if (q) params.set('q', q);
-    const data = await api('/api/posts?' + params);
-    setPosts(reset ? data.posts : [...posts, ...data.posts]);
-    setPage(p);
-    setHasMore(data.has_more);
-    setLoading(false);
-  }, [sort, tag, q, page, posts, loading]);
+  useEffect(() => {
+    setPosts(null); setError(null);
+    api(`/api/posts?sort=${sort}&page=1`)
+      .then(d => setPosts(d.posts))
+      .catch(e => setError(e.message));
+  }, [sort]);
 
-  useEffect(() => { load(true); }, [sort, tag, q]);
+  if (error) return REACT_E('div', {className:'error-box'}, 'Не удалось загрузить посты: ', error);
+  if (!posts) return REACT_E('div', {className:'loading'}, 'Загрузка...');
 
-  return React.createElement('div', null,
-    React.createElement('div', { className: 'header' },
-      React.createElement('h2', { style:{margin:0} }, '📋 Форум'),
-      React.createElement('button', {
-        className:'ghost',
-        onClick: () => { location.hash = '#notifications'; }
-      }, '🔔')
+  return REACT_E('div', null,
+    REACT_E('div', { className: 'row between', style: {marginBottom: 16} },
+      REACT_E('h2', { style: {margin: 0, color: 'var(--accent)', textShadow: '0 0 10px var(--accent-dark)'} }, '⛩️ Аниме-Форум'),
+      REACT_E('button', { className: 'ghost', onClick: () => setView('notifications') }, '🔔')
     ),
-    React.createElement('input', {
-      placeholder: '🔍 Поиск...',
-      value: q,
-      onChange: (e) => setQ(e.target.value)
-    }),
-    React.createElement('div', { className: 'tabs' },
-      ['new','top','hot'].map(s =>
-        React.createElement('button', {
-          key: s,
-          className: sort === s ? '' : 'inactive',
-          onClick: () => setSort(s)
-        }, s === 'new' ? '🆕 Новое' : s === 'top' ? '🔥 Топ' : '⚡ Горячее')
-      )
+    REACT_E('div', { className: 'tabs' },
+      ['new', 'top'].map(s => REACT_E('button', { key: s, className: sort === s ? 'active' : '', onClick: () => setSort(s) }, s === 'new' ? '🆕 Новое' : '🔥 Топ'))
     ),
-    tag && React.createElement('div', {
-      className:'hint', style:{marginBottom:8}
-    }, 'Тег: ', React.createElement('span', {className:'tag'}, tag),
-       ' ', React.createElement('button', {
-         className:'ghost', onClick:() => setTag(null)
-       }, '✕')),
-    posts.map(p =>
-      React.createElement('div', {
-        key: p.id, className: 'card', onClick: () => onOpen(p.id)
-      },
-        React.createElement('div', { className: 'row' },
-          React.createElement('span', {
-            className: 'tag', onClick: (e) => { e.stopPropagation(); setTag(p.tag); }
-          }, p.tag),
-          React.createElement('span', { className: 'hint' },
-            '@' + (p.username || p.first_name || 'anon') + ' · ' + timeAgo(p.created_at))
-        ),
-        React.createElement('div', { className: 'title' }, p.title),
-        React.createElement('div', { className: 'hint' },
-          '▲ ' + p.score + ' · 💬 ' + p.comments + ' · 👁 ' + p.views)
-      )
-    ),
-    hasMore && React.createElement('button', {
-      style: { width:'100%' }, onClick: () => load(false), disabled: loading
-    }, loading ? '...' : 'Загрузить ещё'),
-    !hasMore && posts.length > 0 && React.createElement('p', {
-      className:'hint', style:{textAlign:'center'}
-    }, '— Конец —')
+    posts.length === 0 ? REACT_E('p', {className:'hint', style:{textAlign:'center'}}, 'Пока нет постов. Создай первый!') :
+    posts.map(p => REACT_E('div', { key: p.id, className: 'card', onClick: () => onOpen(p.id) },
+      REACT_E('div', { className: 'row', style: {marginBottom: 8} },
+        REACT_E('span', { className: 'tag' }, p.tag),
+        REACT_E('span', { className: 'hint' }, `@${p.username || p.first_name || 'anon'}`)
+      ),
+      REACT_E('div', { className: 'title' }, p.title),
+      REACT_E('div', { className: 'hint' }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`)
+    ))
   );
 }
 
-// ---------- PostView ----------
 function PostView({ id, onBack }) {
   const [data, setData] = useState(null);
-  const [replyTo, setReplyTo] = useState(null);
-  const [commentText, setCommentText] = useState('');
+  const [error, setError] = useState(null);
+  const [text, setText] = useState('');
 
-  const load = useCallback(async () => {
-    const d = await api('/api/posts/' + id);
-    setData(d);
-  }, [id]);
+  const load = () => {
+    api('/api/posts/' + id).then(setData).catch(e => setError(e.message));
+  };
+  useEffect(load, [id]);
 
-  useEffect(() => { load(); }, [load]);
-
-  if (!data) return React.createElement('p', {className:'hint'}, 'Загрузка...');
+  if (error) return REACT_E('div', {className:'error-box'}, 'Ошибка загрузки поста: ', error);
+  if (!data) return REACT_E('div', {className:'loading'}, 'Загрузка...');
 
   const { post, comments } = data;
 
-  const doVote = async (type, tid, value) => {
-    await api('/api/vote', { method:'POST', body: JSON.stringify({
-      target_type: type, target_id: tid, value }) });
-    tg.HapticFeedback?.impactOccurred('light');
-    load();
-  };
-
   const submitComment = async () => {
-    if (!commentText.trim()) return;
-    await api('/api/comments', { method:'POST', body: JSON.stringify({
-      post_id: id, parent_id: replyTo, body: commentText }) });
-    setCommentText(''); setReplyTo(null);
-    tg.HapticFeedback?.notificationOccurred('success');
-    load();
+    if (!text.trim()) return;
+    try {
+      await api('/api/comments', { method:'POST', body: JSON.stringify({ post_id: id, parent_id: null, body: text }) });
+      setText(''); load();
+    } catch(e) { alert(e.message); }
   };
 
-  const toggleSub = async () => {
-    await api('/api/subscribe/' + id, { method:'POST' });
-    toast(post.subscribed ? 'Отписался' : 'Подписался');
-    load();
-  };
-
-  const report = async () => {
-    await api('/api/report', { method:'POST', body: JSON.stringify({
-      target_type:'post', target_id:id, reason:'inappropriate' }) });
-    toast('Жалоба отправлена');
-  };
-
-  const removePost = async () => {
-    if (!confirm('Удалить пост?')) return;
-    await api('/api/posts/' + id, { method:'DELETE' });
-    onBack();
-  };
-
-  const canModerate = ME.id === post.author_id;
-  const byParent = {};
-  comments.forEach(c => (byParent[c.parent_id || 0] ||= []).push(c));
-
-  const renderTree = (parentId, depth) => (byParent[parentId] || []).map(c =>
-    React.createElement('div', { key: c.id, className: 'comment' },
-      React.createElement('div', { className: 'row between' },
-        React.createElement('div', null,
-          React.createElement('span', { className:'hint' },
-            '@' + (c.username || c.first_name) + ' · ' + timeAgo(c.created_at)),
-          ' ',
-          React.createElement('span', { className:'hint' },
-            '⭐' + (c.author_karma || 0))
+  return REACT_E('div', null,
+    REACT_E('button', { className: 'ghost', onClick: onBack, style: {marginBottom: 12} }, '← Назад'),
+    REACT_E('div', { className: 'card' },
+      REACT_E('div', { className: 'row between' },
+        REACT_E('span', { className: 'tag' }, post.tag),
+        REACT_E('span', { className: 'hint' }, `⭐ Карма автора: ${post.author_karma}`)
+      ),
+      REACT_E('h2', { className: 'title' }, post.title),
+      REACT_E('div', { className: 'body' }, post.body),
+      REACT_E('div', { className: 'row between', style: {marginTop: 16} },
+        REACT_E('div', { className: 'votes' },
+          REACT_E('button', { onClick: () => api('/api/vote', {method:'POST', body:JSON.stringify({target_type:'post', target_id:post.id, value:1})}).then(load) }, '▲'),
+          REACT_E('span', { className: 'score' }, post.score),
+          REACT_E('button', { onClick: () => api('/api/vote', {method:'POST', body:JSON.stringify({target_type:'post', target_id:post.id, value:-1})}).then(load) }, '▼')
         ),
-        React.createElement(Votes, {
-          score: c.score, myVote: 0,
-          onVote: (v) => doVote('comment', c.id, v)
-        })
-      ),
-      React.createElement('div', { className: 'body', style:{margin:'4px 0'} }, c.body),
-      React.createElement('div', { className:'row' },
-        React.createElement('button', {
-          className:'ghost', onClick: () => { setReplyTo(c.id); }
-        }, '↩ Ответить'),
-        React.createElement('button', {
-          className:'ghost',
-          onClick: async () => {
-            await api('/api/report', { method:'POST', body: JSON.stringify({
-              target_type:'comment', target_id:c.id, reason:'inappropriate' }) });
-            toast('Жалоба отправлена');
-          }
-        }, '🚩')
-      ),
-      depth < 5 ? renderTree(c.id, depth+1) : null
-    )
-  );
-
-  return React.createElement('div', null,
-    React.createElement('button', { className:'ghost', onClick:onBack }, '← Назад'),
-    React.createElement('div', { className: 'card' },
-      React.createElement('div', { className: 'row between' },
-        React.createElement('div', { className: 'row' },
-          React.createElement('span', { className: 'tag' }, post.tag),
-          React.createElement('span', { className:'hint' },
-            '@' + (post.username || post.first_name) + ' · ⭐' + (post.author_karma||0))
-        ),
-        React.createElement(Votes, {
-          score: post.score, myVote: post.my_vote || 0,
-          onVote: (v) => doVote('post', post.id, v)
-        })
-      ),
-      React.createElement('h2', { style:{margin:'8px 0'} }, post.title),
-      post.image_file_id && React.createElement('img', {
-        className:'img', src: '/api/image/' + post.id, alt:''
-      }),
-      React.createElement('div', { className: 'body' }, post.body),
-      React.createElement('div', { className:'row', style:{marginTop:12, flexWrap:'wrap'} },
-        React.createElement('button', {
-          className: post.subscribed ? 'ghost' : '',
-          onClick: toggleSub
-        }, post.subscribed ? '🔕 Отписаться' : '🔔 Подписаться'),
-        React.createElement('button', { className:'ghost', onClick: report }, '🚩'),
-        canModerate && React.createElement('button', {
-          className:'ghost', onClick: removePost, style:{color:'var(--danger)'}
-        }, '🗑')
+        REACT_E('span', { className: 'hint' }, `Просмотры: ${post.views}`)
       )
     ),
-    React.createElement('h3', null, '💬 Комментарии (' + comments.length + ')'),
-    replyTo && React.createElement('div', { className:'hint', style:{marginBottom:4} },
-      'Ответ на #' + replyTo + ' ',
-      React.createElement('button', {
-        className:'ghost', onClick: () => setReplyTo(null)
-      }, '✕')),
-    React.createElement('textarea', {
-      rows: 3, placeholder:'Ваш комментарий...',
-      value: commentText, onChange: e => setCommentText(e.target.value)
-    }),
-    React.createElement('button', { onClick: submitComment }, 'Отправить'),
-    renderTree(0, 0)
+    REACT_E('h3', { style: {color: 'var(--accent)'} }, '💬 Комментарии'),
+    REACT_E('textarea', { rows: 2, placeholder: 'Твой комментарий...', value: text, onChange: e => setText(e.target.value) }),
+    REACT_E('button', { onClick: submitComment, style: {marginBottom: 16} }, 'Отправить'),
+    comments.map(c => REACT_E('div', { key: c.id, className: 'comment' },
+      REACT_E('div', { className: 'hint' }, `@${c.username || c.first_name} (⭐${c.author_karma})`),
+      REACT_E('div', { className: 'body', style: {color: '#fff'} }, c.body)
+    ))
   );
 }
 
-// ---------- Compose ----------
-function Compose({ onCreated }) {
+function Compose({ onBack, onCreated }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [tag, setTag] = useState('general');
-  const [fileId, setFileId] = useState(null);
-  const [uploading, setUploading] = useState(false);
 
   const submit = async () => {
-    if (!title.trim()) return toast('Введите заголовок');
-    const r = await api('/api/posts', { method:'POST', body: JSON.stringify({
-      title, body, tag, image_file_id: fileId }) });
-    tg.HapticFeedback?.notificationOccurred('success');
-    onCreated(r.id);
+    if (!title.trim()) return alert('Введи заголовок');
+    try {
+      const r = await api('/api/posts', { method:'POST', body: JSON.stringify({ title, body, tag }) });
+      onCreated(r.id);
+    } catch(e) { alert(e.message); }
   };
 
-  const uploadFile = async (e) => {
-    const f = e.target.files[0]; if (!f) return;
-    setUploading(true);
-    const fd = new FormData();
-    fd.append('file', f);
-    const r = await fetch('/api/upload_file', {
-      method:'POST',
-      headers: { 'X-Init-Data': INIT },
-      body: fd
-    }).then(r => r.json());
-    setUploading(false);
-    if (r.file_id) { setFileId(r.file_id); toast('Картинка загружена'); }
-  };
-
-  return React.createElement('div', null,
-    React.createElement('h2', null, '✍️ Новый пост'),
-    React.createElement('input', {
-      placeholder:'Заголовок', maxLength:200,
-      value: title, onChange: e => setTitle(e.target.value)
-    }),
-    React.createElement('input', {
-      placeholder:'Тег (general, news, ...)', value:tag,
-      onChange: e => setTag(e.target.value)
-    }),
-    React.createElement('textarea', {
-      rows: 8, placeholder:'Текст...',
-      value: body, onChange: e => setBody(e.target.value)
-    }),
-    React.createElement('input', {
-      type:'file', accept:'image/*', onChange: uploadFile
-    }),
-    uploading && React.createElement('p', {className:'hint'}, 'Загрузка...'),
-    fileId && React.createElement('p', {className:'hint'}, '✓ Картинка прикреплена'),
-    React.createElement('button', { onClick: submit }, 'Опубликовать')
+  return REACT_E('div', null,
+    REACT_E('button', { className: 'ghost', onClick: onBack }, '← Отмена'),
+    REACT_E('h2', { style: {color: 'var(--accent)'} }, 'Создать пост'),
+    REACT_E('input', { placeholder: 'Заголовок', value: title, onChange: e => setTitle(e.target.value) }),
+    REACT_E('input', { placeholder: 'Тег (например, anime)', value: tag, onChange: e => setTag(e.target.value) }),
+    REACT_E('textarea', { rows: 6, placeholder: 'Текст поста...', value: body, onChange: e => setBody(e.target.value) }),
+    REACT_E('button', { onClick: submit, style: {width:'100%'} }, 'Опубликовать')
   );
 }
 
-// ---------- Notifications ----------
-function Notifications({ onBack }) {
-  const [items, setItems] = useState([]);
-  useEffect(() => {
-    api('/api/notifications').then(setItems);
-    api('/api/notifications/read', { method:'POST' });
-  }, []);
-  return React.createElement('div', null,
-    React.createElement('button', { className:'ghost', onClick:onBack }, '← Назад'),
-    React.createElement('h2', null, '🔔 Уведомления'),
-    items.length === 0 && React.createElement('p', {className:'hint'}, 'Пока пусто'),
-    items.map(n => React.createElement('div', {
-      key: n.id,
-      className:'notif' + (n.is_read ? ' hint' : ''),
-      onClick: () => { location.hash = '#post/' + n.payload.post_id; }
-    },
-      React.createElement('div', {className:'hint'},
-        timeAgo(n.created_at) + (n.is_read ? '' : ' · новое')),
-      React.createElement('div', null,
-        n.type === 'reply'
-          ? '💬 @' + n.payload.from + ': ' + n.payload.preview
-          : n.type)
-    ))
-  );
-}
-
-// ---------- Profile ----------
-function Profile({ onBack }) {
-  const [data, setData] = useState(null);
-  const [myPosts, setMyPosts] = useState([]);
-  useEffect(() => {
-    api('/api/users/' + ME.id).then(setData);
-    api('/api/my/posts').then(setMyPosts);
-  }, []);
-  if (!data) return React.createElement('p', {className:'hint'}, 'Загрузка...');
-  return React.createElement('div', null,
-    React.createElement('button', { className:'ghost', onClick:onBack }, '← Назад'),
-    React.createElement('div', { className:'card' },
-      React.createElement('h2', {style:{margin:0}},
-        '@' + (data.username || data.first_name)),
-      React.createElement('p', null, '⭐ Карма: ', React.createElement('b', null, data.karma)),
-      React.createElement('p', null, '📝 Постов: ', React.createElement('b', null, data.posts_count)),
-      React.createElement('p', {className:'hint'}, 'С нами с ' + new Date(data.created_at).toLocaleDateString())
-    ),
-    React.createElement('h3', null, 'Мои посты'),
-    myPosts.map(p => React.createElement('div', {
-      key: p.id, className:'card',
-      onClick: () => { location.hash = '#post/' + p.id; }
-    },
-      React.createElement('div', {className:'hint'},
-        p.tag + ' · ' + timeAgo(p.created_at) + (p.is_hidden ? ' · скрыт' : '')),
-      React.createElement('div', {className:'title'}, p.title),
-      React.createElement('div', {className:'hint'},
-        '▲ ' + p.score + ' · 👁 ' + p.views)
-    ))
-  );
-}
-
-// ---------- App Router ----------
 function App() {
-  const [route, setRoute] = useState(location.hash.slice(1) || '');
-  useEffect(() => {
-    const h = () => setRoute(location.hash.slice(1) || '');
-    window.addEventListener('hashchange', h);
-    return () => window.removeEventListener('hashchange', h);
-  }, []);
+  const [route, setRoute] = useState({ view: 'list' });
 
-  const back = () => { location.hash = ''; };
+  if (route.view === 'post') return REACT_E(PostView, { id: route.id, onBack: () => setRoute({view: 'list'}) });
+  if (route.view === 'compose') return REACT_E(Compose, { onBack: () => setRoute({view:'list'}), onCreated: id => setRoute({view:'post', id}) });
 
-  let content;
-  if (route.startsWith('post/')) {
-    content = React.createElement(PostView, {
-      id: parseInt(route.slice(5)), onBack: back });
-  } else if (route === 'compose') {
-    content = React.createElement(Compose, {
-      onCreated: (id) => { location.hash = '#post/' + id; } });
-  } else if (route === 'notifications') {
-    content = React.createElement(Notifications, { onBack: back });
-  } else if (route === 'profile') {
-    content = React.createElement(Profile, { onBack: back });
-  } else {
-    content = React.createElement(PostList, {
-      onOpen: (id) => { location.hash = '#post/' + id; },
-      onTagClick: () => {}
-    });
-  }
-
-  return React.createElement('div', null,
-    content,
-    React.createElement(Toast, null),
-    route === '' && React.createElement('div', null,
-      React.createElement('button', {
-        className:'fab', onClick: () => { location.hash = '#compose'; }
-      }, '+'),
-      React.createElement('button', {
-        className:'ghost',
-        style: { position:'fixed', left:16, bottom:16 },
-        onClick: () => { location.hash = '#profile'; }
-      }, '👤 Профиль')
-    )
+  return REACT_E('div', null,
+    REACT_E(PostList, { onOpen: id => setRoute({view:'post', id}), setView: v => setRoute({view: v}) }),
+    REACT_E('button', { className: 'fab', onClick: () => setRoute({view:'compose'}) }, '+'),
+    REACT_E('button', { className: 'fab-profile', onClick: () => alert('Профиль в разработке') }, '👤')
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  React.createElement(App)
-);
+// Обязательно подключаем React в начале файла!
+const script1 = document.createElement('script');
+script1.src = "https://unpkg.com/react@18/umd/react.production.min.js";
+document.head.appendChild(script1);
+const script2 = document.createElement('script');
+script2.src = "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js";
+document.head.appendChild(script2);
+
+script2.onload = () => {
+  ReactDOM.createRoot(document.getElementById('root')).render(REACT_E(App));
+};
 </script>
 </body>
 </html>

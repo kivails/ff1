@@ -1,21 +1,22 @@
-import hmac, hashlib, json
-from urllib.parse import parse_qsl
+from aiogram.utils.web_app import check_webapp_signature, parse_webapp_init_data
 from fastapi import HTTPException, Header
-from database import get_db
+import os
 
-BOT_TOKEN = "ТВОЙ_ТОКЕН"
+# Берем токен из настроек Render (переменная окружения)
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 
 def verify_init_data(init_data: str) -> dict:
-    parsed = dict(parse_qsl(init_data))
-    received_hash = parsed.pop("hash", None)
-    if not received_hash:
-        raise HTTPException(401, "no hash")
-    check_str = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
-    secret = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
-    calc = hmac.new(secret, check_str.encode(), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(calc, received_hash):
-        raise HTTPException(401, "bad signature")
-    return json.loads(parsed["user"])
+    # Если токена нет - выдаем ошибку
+    if not BOT_TOKEN:
+        raise HTTPException(500, "BOT_TOKEN не настроен на сервере")
+        
+    # Проверяем подпись через встроенную функцию aiogram
+    if not check_webapp_signature(BOT_TOKEN, init_data):
+        raise HTTPException(401, "Ошибка подписи (неверный токен)")
+        
+    # Расшифровываем данные пользователя
+    data = parse_webapp_init_data(init_data)
+    return data.user
 
 async def current_user(x_init_data: str = Header(...)) -> dict:
     tg_user = verify_init_data(x_init_data)

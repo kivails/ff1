@@ -21,11 +21,18 @@ async def ensure_user(user):
                          (user.get("id"), user.get("username"), user.get("first_name")))
         await db.commit()
 
-async def send_tg(chat_id, text, reply_markup=None):
-    async with httpx.AsyncClient() as client:
-        payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
-        if reply_markup: payload["reply_markup"] = json.dumps(reply_markup)
-        await client.post(f"{TG_API}/sendMessage", json=payload)
+async def check_achievements(user_id):
+    async with aiosqlite.connect(DB) as db:
+        # Достижение: Первый пост
+        cur = await db.execute("SELECT COUNT(*) FROM posts WHERE author_id=?", (user_id,))
+        if (await cur.fetchone())[0] >= 1:
+            await db.execute("INSERT OR IGNORE INTO achievements VALUES (?, 'first_post')", (user_id,))
+        # Достижение: 100 кармы
+        cur = await db.execute("SELECT SUM(score) FROM posts WHERE author_id=?", (user_id,))
+        p_karma = (await cur.fetchone())[0] or 0
+        if p_karma >= 100:
+            await db.execute("INSERT OR IGNORE INTO achievements VALUES (?, 'karma_100')", (user_id,))
+        await db.commit()
 
 class PostIn(BaseModel):
     title: str; body: str; tags: str = "general"; image_file_id: str | None = None
@@ -36,7 +43,13 @@ class VoteIn(BaseModel):
 class ProfileUpdate(BaseModel):
     custom_nick: str | None = None; bio: str | None = None; theme: str | None = None
 class ReactionIn(BaseModel):
-    post_id: int; emoji: str
+    target_type: str; target_id: int; emoji: str
+class GiftIn(BaseModel):
+    to_id: int; gift: str
+
+@app.get("/ping")
+async def ping():
+    return {"status": "alive"}
 
 @app.get("/api/posts")
 async def list_posts(sort: str = "new", q: str | None = None, user=Depends(current_user)):
@@ -48,52 +61,32 @@ async def list_posts(sort: str = "new", q: str | None = None, user=Depends(curre
                    FROM posts p JOIN users u ON u.id=p.author_id 
                    WHERE p.status='approved' AND p.is_hidden=0"""
         params = []
-        if q:
-            query += " AND p.tags LIKE ?"; params.append(f"%{q}%")
-        
-        if sort == "day_top":
-            query += " AND p.created_at >= date('now', '-1 day')"
-            query += " ORDER BY p.score DESC"
-        else:
-            query += " ORDER BY p.created_at DESC"
-            
+        if q: query += " AND p.tags LIKE ?"; params.append(f"%{q}%")
+        query += " AND p.created_at >= date('now', '-1 day')" if sort == "day_top" else ""
+        query += " ORDER BY p.score DESC" if sort == "day_top" else " ORDER BY p.created_at DESC"
         query += " LIMIT 50"
         cur = await db.execute(query, params)
         posts = [dict(r) for r in await cur.fetchall()]
         
         for p in posts:
-            cur = await db.execute("SELECT emoji, COUNT(*) as c FROM reactions WHERE post_id=? GROUP BY emoji", (p["id"],))
+            cur = await db.execute("SELECT emoji, COUNT(*) as c FROM reactions WHERE target_type='post' AND target_id=? GROUP BY emoji", (p["id"],))
             p["reactions"] = {r["emoji"]: r["c"] for r in await cur.fetchall()}
     return {"posts": posts}
-
-@app.get("/api/tags")
-async def get_tags():
-    async with aiosqlite.connect(DB) as db:
-        db.row_factory = aiosqlite.Row
-        cur = await db.execute("SELECT * FROM tags ORDER BY posts_count DESC LIMIT 15")
-        return [dict(r) for r in await cur.fetchall()]
 
 @app.post("/api/posts")
 async def create_post(data: PostIn, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT created_at FROM posts WHERE author_id=? ORDER BY id DESC LIMIT 1", (user.get("id"),))
-        last = await cur.fetchone()
-        if last and (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(last[0])).total_seconds() < 900:
-            raise HTTPException(400, "Кулдаун 15 минут между постами!")
-
-        # Ограничение до 3 тегов
         tags_list = [t.strip().replace('#', '') for t in data.tags.split(',') if t.strip()]
         tags_str = ', '.join(tags_list[:3])
-        if not tags_str: tags_str = 'general'
-
         status = 'approved' if user.get("id") in ADMIN_IDS else 'pending'
         cur = await db.execute("INSERT INTO posts(author_id,title,body,tags,image_file_id,status) VALUES (?,?,?,?,?,?)",
                                (user.get("id"), data.title, data.body, tags_str, data.image_file_id, status))
         post_id = cur.lastrowid
         await db.execute("UPDATE users SET crystals = crystals + 10 WHERE id=?", (user.get("id"),))
         await db.commit()
-
+    await check_achievements(user.get("id"))
+    
     if status == 'pending':
         for admin in ADMIN_IDS:
             kb = {"inline_keyboard": [[{"text": "✅ Одобрить", "callback_data": f"mod_ok_{post_id}"},{"text": "❌ Отклонить", "callback_data": f"mod_no_{post_id}"}]]}
@@ -120,7 +113,8 @@ async def get_post(post_id: int, user=Depends(current_user)):
         if not post: raise HTTPException(404)
         cur = await db.execute("SELECT c.*, u.username, u.first_name, u.custom_nick, u.badge FROM comments c JOIN users u ON u.id=c.author_id WHERE c.post_id=? AND c.is_hidden=0 ORDER BY c.created_at", (post_id,))
         comments = [dict(r) for r in await cur.fetchall()]
-        cur = await db.execute("SELECT emoji FROM reactions WHERE user_id=? AND post_id=?", (user.get("id"), post_id))
+        
+        cur = await db.execute("SELECT emoji FROM reactions WHERE user_id=? AND target_type='post' AND target_id=?", (user.get("id"), post_id))
         post = dict(post); post["my_reactions"] = [r["emoji"] for r in await cur.fetchall()]
     return {"post": post, "comments": comments}
 
@@ -128,26 +122,50 @@ async def get_post(post_id: int, user=Depends(current_user)):
 async def create_comment(data: CommentIn, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT created_at FROM comments WHERE author_id=? ORDER BY id DESC LIMIT 1", (user.get("id"),))
-        last = await cur.fetchone()
-        if last and (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(last[0])).total_seconds() < 30:
-            raise HTTPException(400, "Кулдаун 30 секунд!")
         cur = await db.execute("INSERT INTO comments(post_id,parent_id,author_id,body) VALUES (?,?,?,?)", (data.post_id, data.parent_id, user.get("id"), data.body))
         await db.commit()
     return {"id": cur.lastrowid}
+
+@app.post("/api/vote")
+async def vote(data: VoteIn, user=Depends(current_user)):
+    await ensure_user(user)
+    async with aiosqlite.connect(DB) as db:
+        table = "posts" if data.target_type == "post" else "comments"
+        cur = await db.execute("SELECT value FROM votes WHERE user_id=? AND target_type=? AND target_id=?", (user.get("id"), data.target_type, data.target_id))
+        old = await cur.fetchone()
+        delta = data.value - (old[0] if old else 0)
+        if data.value == 0:
+            await db.execute("DELETE FROM votes WHERE user_id=? AND target_type=? AND target_id=?", (user.get("id"), data.target_type, data.target_id))
+        else:
+            await db.execute("INSERT INTO votes VALUES (?,?,?,?) ON CONFLICT DO UPDATE SET value=excluded.value", (user.get("id"), data.target_type, data.target_id, data.value))
+        await db.execute(f"UPDATE {table} SET score=score+? WHERE id=?", (delta, data.target_id))
+        await db.commit()
+    return {"ok": True}
 
 @app.post("/api/react")
 async def react(data: ReactionIn, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT emoji FROM reactions WHERE user_id=? AND post_id=?", (user.get("id"), data.post_id))
+        cur = await db.execute("SELECT emoji FROM reactions WHERE user_id=? AND target_type=? AND target_id=?", (user.get("id"), data.target_type, data.target_id))
         my_reactions = [r[0] for r in await cur.fetchall()]
         max_reactions = 3 if user.get("id") in ADMIN_IDS else 1
         if data.emoji in my_reactions:
-            await db.execute("DELETE FROM reactions WHERE user_id=? AND post_id=? AND emoji=?", (user.get("id"), data.post_id, data.emoji))
+            await db.execute("DELETE FROM reactions WHERE user_id=? AND target_type=? AND target_id=? AND emoji=?", (user.get("id"), data.target_type, data.target_id, data.emoji))
         else:
             if len(my_reactions) >= max_reactions: raise HTTPException(400, "Лимит реакций!")
-            await db.execute("INSERT INTO reactions VALUES (?,?,?)", (user.get("id"), data.post_id, data.emoji))
+            await db.execute("INSERT INTO reactions VALUES (?,?,?,?)", (user.get("id"), data.target_type, data.target_id, data.emoji))
+        await db.commit()
+    return {"ok": True}
+
+@app.post("/api/buy_gift")
+async def buy_gift(data: GiftIn, user=Depends(current_user)):
+    costs = {"heart": 10, "star": 30, "crown": 100}
+    if data.gift not in costs: raise HTTPException(400)
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
+        if (await cur.fetchone())[0] < costs[data.gift]: raise HTTPException(400, "Мало кристаллов!")
+        await db.execute("UPDATE users SET crystals = crystals - ? WHERE id=?", (costs[data.gift], user.get("id")))
+        await db.execute("INSERT INTO gifts(from_id, to_id, gift_name) VALUES (?, ?, ?)", (user.get("id"), data.to_id, data.gift))
         await db.commit()
     return {"ok": True}
 
@@ -166,7 +184,9 @@ async def get_profile(user_id: int, user=Depends(current_user)):
         top_post = await cur.fetchone()
         cur = await db.execute("SELECT gift_name, COUNT(*) as c FROM gifts WHERE to_id=? GROUP BY gift_name", (user_id,))
         gifts = [{"name": r["gift_name"], "count": r["c"]} for r in await cur.fetchall()]
-    return {**dict(u), "karma": p_karma + c_karma, "level": (p_karma + c_karma) // 10, "top_post": dict(top_post) if top_post else None, "gifts": gifts}
+        cur = await db.execute("SELECT ach_name FROM achievements WHERE user_id=?", (user_id,))
+        achs = [r["ach_name"] for r in await cur.fetchall()]
+    return {**dict(u), "karma": p_karma + c_karma, "level": (p_karma + c_karma) // 10, "top_post": dict(top_post) if top_post else None, "gifts": gifts, "achievements": achs}
 
 @app.post("/api/profile")
 async def update_profile(data: ProfileUpdate, user=Depends(current_user)):
@@ -174,18 +194,6 @@ async def update_profile(data: ProfileUpdate, user=Depends(current_user)):
         if data.custom_nick: await db.execute("UPDATE users SET custom_nick=? WHERE id=?", (data.custom_nick, user.get("id")))
         if data.bio is not None: await db.execute("UPDATE users SET bio=? WHERE id=?", (data.bio, user.get("id")))
         if data.theme: await db.execute("UPDATE users SET theme=? WHERE id=?", (data.theme, user.get("id")))
-        await db.commit()
-    return {"ok": True}
-
-@app.post("/api/buy_gift")
-async def buy_gift(gift: str, user=Depends(current_user)):
-    costs = {"heart": 10, "star": 30, "crown": 100}
-    if gift not in costs: raise HTTPException(400)
-    async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
-        if (await cur.fetchone())[0] < costs[gift]: raise HTTPException(400, "Мало кристаллов!")
-        await db.execute("UPDATE users SET crystals = crystals - ? WHERE id=?", (costs[gift], user.get("id")))
-        await db.execute("INSERT INTO gifts(from_id, to_id, gift_name) VALUES (?, ?, ?)", (user.get("id"), user.get("id"), gift))
         await db.commit()
     return {"ok": True}
 
@@ -211,6 +219,13 @@ async def get_image(post_id: int):
         path = r.json()["result"]["file_path"]
         img = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}")
     return StreamingResponse(iter([img.content]), media_type="image/jpeg")
+
+@app.get("/api/settings")
+async def get_settings():
+    async with aiosqlite.connect(DB) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute("SELECT key, value FROM settings")
+        return {r["key"]: r["value"] for r in await cur.fetchall()}
 
 @app.on_event("startup")
 async def _startup(): await init_db()

@@ -5,273 +5,296 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Anime Forum</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- ПРАВИЛЬНОЕ ПОДКЛЮЧЕНИЕ REACT -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<!-- Шрифт с поддержкой кириллицы -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+
 <style>
-  /* Аниме-стилистика: темная тема, неон, стекло */
+  /* --- АНИМЕ СТИЛИСТИКА --- */
   :root {
-    --bg: #0b0c10;
-    --bg-gradient: linear-gradient(135deg, #0b0c10 0%, #1f2833 100%);
-    --glass: rgba(31, 40, 51, 0.6);
-    --border: rgba(102, 252, 241, 0.2);
-    --text: #c5c6c7;
-    --accent: #66fcf1;
-    --accent-dark: #45a29e;
-    --danger: #ff4c4c;
-    --hint: #7f8c8d;
+    --bg-dark: #0f0c29;
+    --bg-mid: #302b63;
+    --bg-light: #24243e;
+    --glass: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text: #ffffff;
+    --text-muted: #a0a0a0;
+    --accent: #ff007f; /* Неоновый розовый */
+    --accent-glow: rgba(255, 0, 127, 0.6);
+    --cyan: #00f0ff;
+    --cyan-glow: rgba(0, 240, 255, 0.6);
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Montserrat', sans-serif; }
+  
   body {
-    margin: 0; padding: 12px; padding-bottom: 90px;
-    background: var(--bg-gradient);
-    background-attachment: fixed;
+    margin: 0; padding: 16px; padding-bottom: 100px;
+    background: linear-gradient(135deg, var(--bg-dark), var(--bg-mid), var(--bg-light));
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
     color: var(--text);
-    font-family: 'Segoe UI', -apple-system, Roboto, sans-serif;
     min-height: 100vh;
   }
-  /* Стеклянная карточка */
+
+  @keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Стеклянные карточки */
   .card {
     background: var(--glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
     padding: 16px;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3), 0 0 10px rgba(102, 252, 241, 0.05);
-    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   .card:active { transform: scale(0.98); }
-  .row { display: flex; align-items: center; gap: 10px; }
+
+  .row { display: flex; align-items: center; gap: 12px; }
   .between { justify-content: space-between; }
-  .hint { color: var(--hint); font-size: 13px; }
-  .title { font-weight: 700; font-size: 18px; margin: 8px 0; color: #fff; text-shadow: 0 0 5px rgba(102,252,241,0.3); }
-  .body { white-space: pre-wrap; line-height: 1.5; word-break: break-word; }
+  .hint { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+  
+  .title { 
+    font-weight: 800; font-size: 18px; margin: 10px 0; 
+    color: #fff; letter-spacing: 0.5px;
+  }
+  .body { white-space: pre-wrap; line-height: 1.6; word-break: break-word; font-size: 14px; }
 
   /* Кнопки */
   button {
-    background: linear-gradient(90deg, var(--accent-dark), var(--accent));
-    color: #0b0c10;
-    border: 0; border-radius: 12px; padding: 10px 16px;
-    font-size: 15px; font-weight: bold; cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 0 10px rgba(102, 252, 241, 0.4);
+    background: linear-gradient(90deg, var(--accent), #ff4b4b);
+    color: #fff;
+    border: none; border-radius: 12px; padding: 12px 20px;
+    font-size: 14px; font-weight: 800; cursor: pointer;
+    transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px;
+    box-shadow: 0 4px 15px var(--accent-glow);
   }
-  button:disabled { opacity: 0.5; box-shadow: none; }
+  button:active { transform: scale(0.95); box-shadow: 0 2px 5px var(--accent-glow); }
+  
   button.ghost {
-    background: transparent; color: var(--accent); box-shadow: none;
-    border: 1px solid var(--border); padding: 6px 12px;
+    background: transparent; color: var(--cyan); box-shadow: none;
+    border: 1px solid var(--cyan); padding: 6px 12px;
   }
-  button.ghost:active { background: rgba(102, 252, 241, 0.1); }
-  button.danger { background: linear-gradient(90deg, #a00, var(--danger)); color: #fff; box-shadow: 0 0 10px rgba(255, 76, 76, 0.4); }
+  button.ghost:active { background: rgba(0, 240, 255, 0.1); }
 
   /* Поля ввода */
-  input, textarea, select {
-    width: 100%; padding: 12px; border-radius: 12px;
-    border: 1px solid var(--border);
-    background: rgba(0,0,0,0.3); color: var(--accent);
-    font-size: 15px; margin-bottom: 10px; font-family: inherit;
-    outline: none; transition: border 0.2s;
+  input, textarea {
+    width: 100%; padding: 14px; border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0,0,0,0.4); color: var(--cyan);
+    font-size: 14px; margin-bottom: 12px;
+    outline: none; transition: border 0.3s, box-shadow 0.3s;
   }
-  input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 8px rgba(102, 252, 241, 0.2); }
+  input:focus, textarea:focus { border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan-glow); }
+  input::placeholder, textarea::placeholder { color: #666; }
 
   /* Голосование */
-  .votes { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 36px; }
-  .votes .score { font-weight: 800; font-size: 15px; color: var(--accent); text-shadow: 0 0 5px var(--accent); }
-  .votes button { background: transparent; color: var(--hint); padding: 0; font-size: 20px; line-height: 1; box-shadow: none; }
-  .votes button.active { color: var(--accent); text-shadow: 0 0 8px var(--accent); }
+  .votes { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 40px; }
+  .votes .score { font-weight: 800; font-size: 16px; color: var(--cyan); text-shadow: 0 0 8px var(--cyan-glow); }
+  .votes button { background: transparent; color: var(--text-muted); padding: 0; font-size: 22px; line-height: 1; box-shadow: none; }
+  .votes button.active { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
 
-  /* Комментарии */
-  .comment { padding-left: 12px; border-left: 2px solid var(--border); margin-left: 12px; margin-top: 10px; }
-  .tag { display: inline-block; background: rgba(102, 252, 241, 0.1); color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+  /* Теги и Комментарии */
+  .comment { padding-left: 14px; border-left: 2px solid var(--accent); margin-left: 14px; margin-top: 12px; background: rgba(0,0,0,0.2); border-radius: 0 8px 8px 0; padding: 8px; }
+  .tag { display: inline-block; background: rgba(255, 0, 127, 0.15); color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 
-  /* Табы (Новое/Топ) */
-  .tabs { display: flex; gap: 8px; margin-bottom: 16px; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 12px; }
-  .tabs button { flex: 1; background: transparent; color: var(--hint); box-shadow: none; padding: 8px; font-size: 14px; }
-  .tabs button.active { background: rgba(102, 252, 241, 0.15); color: var(--accent); text-shadow: 0 0 5px var(--accent); }
+  /* Табы */
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 14px; }
+  .tabs button { flex: 1; background: transparent; color: var(--text-muted); box-shadow: none; padding: 10px; font-size: 13px; }
+  .tabs button.active { background: var(--glass); color: var(--cyan); text-shadow: 0 0 8px var(--cyan-glow); box-shadow: none; border: 1px solid var(--glass-border); }
 
-  /* Кнопка плюс (FAB) и Профиль */
+  /* Кнопки внизу */
   .fab {
-    position: fixed; right: 20px; bottom: 20px; width: 60px; height: 60px;
-    border-radius: 50%; font-size: 30px; padding: 0; z-index: 10;
+    position: fixed; right: 20px; bottom: 20px; width: 64px; height: 64px;
+    border-radius: 50%; font-size: 32px; padding: 0; z-index: 10;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 20px rgba(102, 252, 241, 0.6);
+    background: linear-gradient(135deg, var(--cyan), #0055ff);
+    box-shadow: 0 0 20px var(--cyan-glow);
   }
   .fab-profile {
-    position: fixed; left: 20px; bottom: 20px; width: 60px; height: 60px;
+    position: fixed; left: 20px; bottom: 20px; width: 64px; height: 64px;
     border-radius: 50%; font-size: 24px; padding: 0; z-index: 10;
     display: flex; align-items: center; justify-content: center;
-    background: var(--glass); border: 1px solid var(--border); color: var(--accent);
-    box-shadow: 0 0 15px rgba(102, 252, 241, 0.2);
+    background: rgba(0,0,0,0.6); border: 1px solid var(--accent); color: var(--accent);
+    backdrop-filter: blur(10px); box-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
   }
 
-  /* Утилиты */
   .hidden { display: none !important; }
-  .loading { text-align: center; color: var(--accent); margin-top: 50px; font-size: 18px; animation: pulse 1.5s infinite; }
-  @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; text-shadow: 0 0 10px var(--accent); } 100% { opacity: 0.5; } }
-  .error-box { background: rgba(255, 76, 76, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 15px; border-radius: 12px; margin: 20px 0; text-align: center; }
+  .loading { text-align: center; color: var(--cyan); margin-top: 60px; font-size: 16px; font-weight: 800; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; text-shadow: 0 0 15px var(--cyan); } 100% { opacity: 0.4; } }
+  .error-box { background: rgba(255, 0, 0, 0.2); border: 1px solid #ff0000; color: #ffb3b3; padding: 16px; border-radius: 12px; margin: 20px 0; text-align: center; font-weight: 600; }
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root">
+  <!-- Показываем загрузку, пока React не запустится -->
+  <div class="loading" id="initial-loader">Инициализация магии... ⛩️</div>
+</div>
+
 <script>
-const tg = window.Telegram.WebApp;
-tg.ready(); tg.expand();
-const INIT = tg.initData;
+  // Проверка на ошибки JS, чтобы не было черного экрана
+  window.onerror = function(msg, url, line) {
+    document.getElementById('root').innerHTML = `<div class="error-box">Ошибка JS: ${msg}<br>Строка: ${line}</div>`;
+  };
 
-// Проверка на наличие initData
-if (!INIT) {
-  document.getElementById('root').innerHTML = '<div class="error-box">Ошибка: Приложение открыто вне Telegram!<br>Пожалуйста, откройте его через кнопку в боте.</div>';
-  throw new Error("No initData");
-}
+  const tg = window.Telegram.WebApp;
+  tg.ready(); tg.expand();
 
-const { useState, useEffect } = React;
-const REACT_E = React.createElement;
-
-async function api(path, opts = {}) {
-  const r = await fetch(path, {
-    ...opts,
-    headers: { 'Content-Type': 'application/json', 'X-Init-Data': INIT, ...(opts.headers || {}) }
-  });
-  if (!r.ok) {
-    const txt = await r.text();
-    throw new Error(`${r.status}: ${txt}`);
+  // Твой API токен
+  const INIT = tg.initData;
+  if (!INIT) {
+    document.getElementById('root').innerHTML = '<div class="error-box">Ошибка: Нет данных от Telegram!<br>Открой приложение через кнопку в боте.</div>';
+    throw new Error("No initData");
   }
-  return r.json();
-}
 
-// --- Компоненты ---
-function PostList({ onOpen, setView }) {
-  const [posts, setPosts] = useState(null);
-  const [error, setError] = useState(null);
-  const [sort, setSort] = useState('new');
+  const { useState, useEffect, createElement: e } = React;
 
-  useEffect(() => {
-    setPosts(null); setError(null);
-    api(`/api/posts?sort=${sort}&page=1`)
-      .then(d => setPosts(d.posts))
-      .catch(e => setError(e.message));
-  }, [sort]);
+  async function api(path, opts = {}) {
+    const r = await fetch(path, {
+      ...opts,
+      headers: { 'Content-Type': 'application/json', 'X-Init-Data': INIT, ...(opts.headers || {}) }
+    });
+    if (!r.ok) {
+      const txt = await r.text();
+      throw new Error(`Сервер ответил: ${r.status} (${txt})`);
+    }
+    return r.json();
+  }
 
-  if (error) return REACT_E('div', {className:'error-box'}, 'Не удалось загрузить посты: ', error);
-  if (!posts) return REACT_E('div', {className:'loading'}, 'Загрузка...');
+  // --- Компоненты ---
+  function PostList({ onOpen, setView }) {
+    const [posts, setPosts] = useState(null);
+    const [error, setError] = useState(null);
+    const [sort, setSort] = useState('new');
 
-  return REACT_E('div', null,
-    REACT_E('div', { className: 'row between', style: {marginBottom: 16} },
-      REACT_E('h2', { style: {margin: 0, color: 'var(--accent)', textShadow: '0 0 10px var(--accent-dark)'} }, '⛩️ Аниме-Форум'),
-      REACT_E('button', { className: 'ghost', onClick: () => setView('notifications') }, '🔔')
-    ),
-    REACT_E('div', { className: 'tabs' },
-      ['new', 'top'].map(s => REACT_E('button', { key: s, className: sort === s ? 'active' : '', onClick: () => setSort(s) }, s === 'new' ? '🆕 Новое' : '🔥 Топ'))
-    ),
-    posts.length === 0 ? REACT_E('p', {className:'hint', style:{textAlign:'center'}}, 'Пока нет постов. Создай первый!') :
-    posts.map(p => REACT_E('div', { key: p.id, className: 'card', onClick: () => onOpen(p.id) },
-      REACT_E('div', { className: 'row', style: {marginBottom: 8} },
-        REACT_E('span', { className: 'tag' }, p.tag),
-        REACT_E('span', { className: 'hint' }, `@${p.username || p.first_name || 'anon'}`)
+    useEffect(() => {
+      setPosts(null); setError(null);
+      api(`/api/posts?sort=${sort}&page=1`)
+        .then(d => setPosts(d.posts))
+        .catch(e => setError(e.message));
+    }, [sort]);
+
+    if (error) return e('div', {className:'error-box'}, 'Ошибка: ', error);
+    if (!posts) return e('div', {className:'loading'}, 'Собираем посты... ⛩️');
+
+    return e('div', null,
+      e('div', { className: 'row between', style: {marginBottom: 16} },
+        e('h1', { style: {margin: 0, color: '#fff', fontSize: 24, textShadow: '0 0 15px rgba(255,0,127,0.5)'} }, '⛩️ Аниме-Форум'),
+        e('button', { className: 'ghost', onClick: () => setView('notifications') }, '🔔')
       ),
-      REACT_E('div', { className: 'title' }, p.title),
-      REACT_E('div', { className: 'hint' }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`)
-    ))
-  );
-}
-
-function PostView({ id, onBack }) {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-  const [text, setText] = useState('');
-
-  const load = () => {
-    api('/api/posts/' + id).then(setData).catch(e => setError(e.message));
-  };
-  useEffect(load, [id]);
-
-  if (error) return REACT_E('div', {className:'error-box'}, 'Ошибка загрузки поста: ', error);
-  if (!data) return REACT_E('div', {className:'loading'}, 'Загрузка...');
-
-  const { post, comments } = data;
-
-  const submitComment = async () => {
-    if (!text.trim()) return;
-    try {
-      await api('/api/comments', { method:'POST', body: JSON.stringify({ post_id: id, parent_id: null, body: text }) });
-      setText(''); load();
-    } catch(e) { alert(e.message); }
-  };
-
-  return REACT_E('div', null,
-    REACT_E('button', { className: 'ghost', onClick: onBack, style: {marginBottom: 12} }, '← Назад'),
-    REACT_E('div', { className: 'card' },
-      REACT_E('div', { className: 'row between' },
-        REACT_E('span', { className: 'tag' }, post.tag),
-        REACT_E('span', { className: 'hint' }, `⭐ Карма автора: ${post.author_karma}`)
+      e('div', { className: 'tabs' },
+        ['new', 'top'].map(s => e('button', { key: s, className: sort === s ? 'active' : '', onClick: () => setSort(s) }, s === 'new' ? '🆕 Новое' : '🔥 Топ'))
       ),
-      REACT_E('h2', { className: 'title' }, post.title),
-      REACT_E('div', { className: 'body' }, post.body),
-      REACT_E('div', { className: 'row between', style: {marginTop: 16} },
-        REACT_E('div', { className: 'votes' },
-          REACT_E('button', { onClick: () => api('/api/vote', {method:'POST', body:JSON.stringify({target_type:'post', target_id:post.id, value:1})}).then(load) }, '▲'),
-          REACT_E('span', { className: 'score' }, post.score),
-          REACT_E('button', { onClick: () => api('/api/vote', {method:'POST', body:JSON.stringify({target_type:'post', target_id:post.id, value:-1})}).then(load) }, '▼')
+      posts.length === 0 ? e('p', {className:'hint', style:{textAlign:'center', marginTop: 40}}, 'Пока пусто. Создай первый пост!') :
+      posts.map(p => e('div', { key: p.id, className: 'card', onClick: () => onOpen(p.id) },
+        e('div', { className: 'row', style: {marginBottom: 8} },
+          e('span', { className: 'tag' }, p.tag),
+          e('span', { className: 'hint' }, `@${p.username || p.first_name || 'anon'}`)
         ),
-        REACT_E('span', { className: 'hint' }, `Просмотры: ${post.views}`)
-      )
-    ),
-    REACT_E('h3', { style: {color: 'var(--accent)'} }, '💬 Комментарии'),
-    REACT_E('textarea', { rows: 2, placeholder: 'Твой комментарий...', value: text, onChange: e => setText(e.target.value) }),
-    REACT_E('button', { onClick: submitComment, style: {marginBottom: 16} }, 'Отправить'),
-    comments.map(c => REACT_E('div', { key: c.id, className: 'comment' },
-      REACT_E('div', { className: 'hint' }, `@${c.username || c.first_name} (⭐${c.author_karma})`),
-      REACT_E('div', { className: 'body', style: {color: '#fff'} }, c.body)
-    ))
-  );
-}
+        e('div', { className: 'title' }, p.title),
+        e('div', { className: 'hint' }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`)
+      ))
+    );
+  }
 
-function Compose({ onBack, onCreated }) {
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [tag, setTag] = useState('general');
+  function PostView({ id, onBack }) {
+    const [data, setData] = useState(null);
+    const [error, setError] = useState(null);
+    const [text, setText] = useState('');
 
-  const submit = async () => {
-    if (!title.trim()) return alert('Введи заголовок');
-    try {
-      const r = await api('/api/posts', { method:'POST', body: JSON.stringify({ title, body, tag }) });
-      onCreated(r.id);
-    } catch(e) { alert(e.message); }
-  };
+    const load = () => {
+      api('/api/posts/' + id).then(setData).catch(e => setError(e.message));
+    };
+    useEffect(load, [id]);
 
-  return REACT_E('div', null,
-    REACT_E('button', { className: 'ghost', onClick: onBack }, '← Отмена'),
-    REACT_E('h2', { style: {color: 'var(--accent)'} }, 'Создать пост'),
-    REACT_E('input', { placeholder: 'Заголовок', value: title, onChange: e => setTitle(e.target.value) }),
-    REACT_E('input', { placeholder: 'Тег (например, anime)', value: tag, onChange: e => setTag(e.target.value) }),
-    REACT_E('textarea', { rows: 6, placeholder: 'Текст поста...', value: body, onChange: e => setBody(e.target.value) }),
-    REACT_E('button', { onClick: submit, style: {width:'100%'} }, 'Опубликовать')
-  );
-}
+    if (error) return e('div', {className:'error-box'}, 'Ошибка: ', error);
+    if (!data) return e('div', {className:'loading'}, 'Загрузка поста... ⛩️');
 
-function App() {
-  const [route, setRoute] = useState({ view: 'list' });
+    const { post, comments } = data;
 
-  if (route.view === 'post') return REACT_E(PostView, { id: route.id, onBack: () => setRoute({view: 'list'}) });
-  if (route.view === 'compose') return REACT_E(Compose, { onBack: () => setRoute({view:'list'}), onCreated: id => setRoute({view:'post', id}) });
+    const submitComment = async () => {
+      if (!text.trim()) return;
+      try {
+        await api('/api/comments', { method:'POST', body: JSON.stringify({ post_id: id, parent_id: null, body: text }) });
+        setText(''); load();
+      } catch(e) { alert(e.message); }
+    };
 
-  return REACT_E('div', null,
-    REACT_E(PostList, { onOpen: id => setRoute({view:'post', id}), setView: v => setRoute({view: v}) }),
-    REACT_E('button', { className: 'fab', onClick: () => setRoute({view:'compose'}) }, '+'),
-    REACT_E('button', { className: 'fab-profile', onClick: () => alert('Профиль в разработке') }, '👤')
-  );
-}
+    return e('div', null,
+      e('button', { className: 'ghost', onClick: onBack, style: {marginBottom: 16} }, '← Назад'),
+      e('div', { className: 'card' },
+        e('div', { className: 'row between' },
+          e('span', { className: 'tag' }, post.tag),
+          e('span', { className: 'hint' }, `⭐ ${post.author_karma}`)
+        ),
+        e('h2', { className: 'title' }, post.title),
+        e('div', { className: 'body' }, post.body),
+        e('div', { className: 'row between', style: {marginTop: 16} },
+          e('div', { className: 'votes' },
+            e('button', { onClick: () => api('/api/vote', {method:'POST', body:JSON.stringify({target_type:'post', target_id:post.id, value:1})}).then(load) }, '▲'),
+            e('span', { className: 'score' }, post.score),
+            e('button', { onClick: () => api('/api/vote', {method:'POST', body:JSON.stringify({target_type:'post', target_id:post.id, value:-1})}).then(load) }, '▼')
+          ),
+          e('span', { className: 'hint' }, `👁 ${post.views}`)
+        )
+      ),
+      e('h3', { style: {color: 'var(--cyan)'} }, '💬 Комментарии'),
+      e('textarea', { rows: 3, placeholder: 'Написать комментарий...', value: text, onChange: ev => setText(ev.target.value) }),
+      e('button', { onClick: submitComment, style: {marginBottom: 16, width: '100%'} }, 'Отправить'),
+      comments.map(c => e('div', { key: c.id, className: 'comment' },
+        e('div', { className: 'hint' }, `@${c.username || c.first_name} (⭐${c.author_karma})`),
+        e('div', { className: 'body', style: {color: '#fff', marginTop: 4} }, c.body)
+      ))
+    );
+  }
 
-// Обязательно подключаем React в начале файла!
-const script1 = document.createElement('script');
-script1.src = "https://unpkg.com/react@18/umd/react.production.min.js";
-document.head.appendChild(script1);
-const script2 = document.createElement('script');
-script2.src = "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js";
-document.head.appendChild(script2);
+  function Compose({ onBack, onCreated }) {
+    const [title, setTitle] = useState('');
+    const [body, setBody] = useState('');
+    const [tag, setTag] = useState('general');
 
-script2.onload = () => {
-  ReactDOM.createRoot(document.getElementById('root')).render(REACT_E(App));
-};
+    const submit = async () => {
+      if (!title.trim()) return alert('Введи заголовок');
+      try {
+        const r = await api('/api/posts', { method:'POST', body: JSON.stringify({ title, body, tag }) });
+        onCreated(r.id);
+      } catch(ev) { alert(ev.message); }
+    };
+
+    return e('div', null,
+      e('button', { className: 'ghost', onClick: onBack, style: {marginBottom: 16} }, '← Отмена'),
+      e('h2', { style: {color: '#fff'} }, 'Создать пост'),
+      e('input', { placeholder: 'Заголовок', value: title, onChange: ev => setTitle(ev.target.value) }),
+      e('input', { placeholder: 'Тег (anime, news...)', value: tag, onChange: ev => setTag(ev.target.value) }),
+      e('textarea', { rows: 6, placeholder: 'Текст поста...', value: body, onChange: ev => setBody(ev.target.value) }),
+      e('button', { onClick: submit, style: {width:'100%'} }, 'Опубликовать ⛩️')
+    );
+  }
+
+  function App() {
+    const [route, setRoute] = useState({ view: 'list' });
+
+    if (route.view === 'post') return e(PostView, { id: route.id, onBack: () => setRoute({view: 'list'}) });
+    if (route.view === 'compose') return e(Compose, { onBack: () => setRoute({view:'list'}), onCreated: id => setRoute({view:'post', id}) });
+
+    return e('div', null,
+      e(PostList, { onOpen: id => setRoute({view:'post', id}), setView: v => setRoute({view: v}) }),
+      e('button', { className: 'fab', onClick: () => setRoute({view:'compose'}) }, '+'),
+      e('button', { className: 'fab-profile', onClick: () => alert('Профиль скоро появится!') }, '👤')
+    );
+  }
+
+  // Запуск React
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(e(App));
 </script>
 </body>
 </html>

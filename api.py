@@ -80,7 +80,6 @@ async def create_post(data: PostIn, user=Depends(current_user)):
         await db.execute("UPDATE users SET crystals = crystals + 10 WHERE id=?", (user.get("id"),))
         await db.commit()
     await check_achievements(user.get("id"))
-    
     if status == 'pending':
         for admin in ADMIN_IDS:
             kb = {"inline_keyboard": [[{"text": "✅ Одобрить", "callback_data": f"mod_ok_{post_id}"},{"text": "❌ Отклонить", "callback_data": f"mod_no_{post_id}"}]]}
@@ -169,18 +168,6 @@ async def buy_frame(frame: str, user=Depends(current_user)):
         cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
         if (await cur.fetchone())[0] < costs[frame]: raise HTTPException(400, "Мало кристаллов!")
         await db.execute("UPDATE users SET crystals = crystals - ?, frame = ? WHERE id=?", (costs[frame], frame, user.get("id")))
-        await db.commit()
-    return {"ok": True}
-
-@app.post("/api/buy_gift")
-async def buy_gift(data: GiftIn, user=Depends(current_user)):
-    costs = {"heart": 10, "star": 30, "crown": 100}
-    if data.gift not in costs: raise HTTPException(400)
-    async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
-        if (await cur.fetchone())[0] < costs[data.gift]: raise HTTPException(400, "Мало кристаллов!")
-        await db.execute("UPDATE users SET crystals = crystals - ? WHERE id=?", (costs[data.gift], user.get("id")))
-        await db.execute("INSERT INTO gifts(from_id, to_id, gift_name) VALUES (?, ?, ?)", (user.get("id"), data.to_id, data.gift))
         await db.commit()
     return {"ok": True}
 

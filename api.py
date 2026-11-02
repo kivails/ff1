@@ -433,3 +433,12 @@ async def _startup():
     await init_db()
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # разрешаем всем
+    allow_methods=["*"],      # любые действия
+    allow_headers=["*"],      # любые заголовки
+)

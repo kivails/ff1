@@ -9,6 +9,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, 
     bio TEXT DEFAULT '', custom_nick TEXT, theme TEXT DEFAULT 'neon',
+    crystals INTEGER DEFAULT 0, frame TEXT DEFAULT 'none',
     is_banned INTEGER DEFAULT 0, ban_reason TEXT, 
     referred_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -25,6 +26,10 @@ CREATE TABLE IF NOT EXISTS comments (
     score INTEGER DEFAULT 0, is_hidden INTEGER DEFAULT 0, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS post_views (
+    user_id INTEGER NOT NULL, post_id INTEGER NOT NULL, 
+    PRIMARY KEY(user_id, post_id)
+);
 CREATE TABLE IF NOT EXISTS votes (
     user_id INTEGER NOT NULL, target_type TEXT NOT NULL, 
     target_id INTEGER NOT NULL, value INTEGER NOT NULL, 
@@ -34,21 +39,15 @@ CREATE TABLE IF NOT EXISTS reactions (
     user_id INTEGER NOT NULL, post_id INTEGER NOT NULL, 
     emoji TEXT NOT NULL, PRIMARY KEY(user_id, post_id, emoji)
 );
-CREATE TABLE IF NOT EXISTS reports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, reporter_id INTEGER NOT NULL, 
-    target_type TEXT NOT NULL, target_id INTEGER NOT NULL, 
-    resolved INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 CREATE TABLE IF NOT EXISTS tags (
     name TEXT PRIMARY KEY, color TEXT DEFAULT '#ff007f', posts_count INTEGER DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
-CREATE INDEX IF NOT EXISTS idx_votes_target ON votes(target_type, target_id);
 CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(title, body, content='posts', content_rowid='id');
 """
 
 async def init_db():
     async with aiosqlite.connect(DB) as db:
         await db.executescript(SCHEMA)
-        await db.execute("INSERT OR IGNORE INTO tags(name) VALUES ('general'), ('anime'), ('news'), ('sakura')")
+        await db.execute("INSERT OR IGNORE INTO tags(name) VALUES ('general'), ('anime'), ('news')")
         await db.commit()

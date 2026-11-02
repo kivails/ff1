@@ -1,6 +1,6 @@
 import aiosqlite
 
-DB = "rareads.db"  # База данных в корне проекта
+DB = "rareads.db"
 
 SCHEMA = """
 PRAGMA journal_mode = WAL;
@@ -55,6 +55,6 @@ async def init_db():
     async with aiosqlite.connect(DB) as db:
         await db.executescript(SCHEMA)
         await db.execute("INSERT OR IGNORE INTO tags(name) VALUES ('general'), ('anime'), ('news')")
-        # Ссылки на два радио-потока
-        await db.execute("INSERT OR IGNORE INTO settings(key, value) VALUES ('bg_music_1', 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3'), ('bg_music_2', 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3')")
+        # Ссылка на музыкальный поток (можно заменить на любую)
+        await db.execute("INSERT OR IGNORE INTO settings(key, value) VALUES ('music_url', 'https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1&loop=1')")
         await db.commit()

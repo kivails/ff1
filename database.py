@@ -1,6 +1,6 @@
 import aiosqlite
 
-DB = "/data/rareads.db"
+DB = "rareads.db"  # База данных в корне проекта
 
 SCHEMA = """
 PRAGMA journal_mode = WAL;
@@ -52,11 +52,9 @@ CREATE TABLE IF NOT EXISTS tags (name TEXT PRIMARY KEY, color TEXT DEFAULT '#ffb
 """
 
 async def init_db():
-    import os
-    if not os.path.exists("/data"):
-        os.makedirs("/data")
     async with aiosqlite.connect(DB) as db:
         await db.executescript(SCHEMA)
         await db.execute("INSERT OR IGNORE INTO tags(name) VALUES ('general'), ('anime'), ('news')")
+        # Ссылки на два радио-потока
         await db.execute("INSERT OR IGNORE INTO settings(key, value) VALUES ('bg_music_1', 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3'), ('bg_music_2', 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3')")
         await db.commit()

@@ -11,8 +11,10 @@ def verify_init_data(init_data: str) -> dict:
         raise HTTPException(401, "Отсутствуют данные авторизации")
     if not check_webapp_signature(BOT_TOKEN, init_data):
         raise HTTPException(401, "Неверная подпись")
-    return parse_webapp_init_data(init_data).user
+        
+    data = parse_webapp_init_data(init_data)
+    # Возвращаем словарь вместо объекта
+    return dict(data.user)
 
 async def current_user(x_init_data: str = Header(...)) -> dict:
-    # Просто возвращаем данные пользователя из Telegram
     return verify_init_data(x_init_data)

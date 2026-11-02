@@ -9,16 +9,18 @@ from database import DB, init_db
 from auth import current_user
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
-ADMIN_IDS = {5024935475}# ТВОЙ ID (узнай в @userinfobot)
+ADMIN_IDS = {5024935475}  # Твой ID
 TG_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-async def ensure_user(user):
+async def ensure_user(user, ref_id=None):
     async with aiosqlite.connect(DB) as db:
         await db.execute("INSERT OR IGNORE INTO users(id, username, first_name) VALUES (?,?,?)",
                          (user.get("id"), user.get("username"), user.get("first_name")))
+        if ref_id:
+            await db.execute("UPDATE users SET referred_by=? WHERE id=? AND referred_by IS NULL", (ref_id, user.get("id")))
         await db.commit()
 
 async def send_tg(chat_id, text, reply_markup=None):
@@ -27,7 +29,6 @@ async def send_tg(chat_id, text, reply_markup=None):
         if reply_markup: payload["reply_markup"] = json.dumps(reply_markup)
         await client.post(f"{TG_API}/sendMessage", json=payload)
 
-# ============ Модели ============
 class PostIn(BaseModel):
     title: str; body: str; tag: str = "general"; image_file_id: str | None = None
 class CommentIn(BaseModel):
@@ -36,8 +37,9 @@ class VoteIn(BaseModel):
     target_type: str; target_id: int; value: int
 class ProfileUpdate(BaseModel):
     custom_nick: str | None = None; bio: str | None = None; theme: str | None = None
+class ReactionIn(BaseModel):
+    post_id: int; emoji: str
 
-# ============ API ============
 @app.get("/api/posts")
 async def list_posts(tag: str | None = None, user=Depends(current_user)):
     await ensure_user(user)
@@ -48,13 +50,16 @@ async def list_posts(tag: str | None = None, user=Depends(current_user)):
                    FROM posts p JOIN users u ON u.id=p.author_id 
                    WHERE p.status='approved' AND p.is_hidden=0"""
         params = []
-        if tag:
-            query += " AND p.tag = ?"; params.append(tag)
+        if tag: query += " AND p.tag = ?"; params.append(tag)
         query += " ORDER BY p.created_at DESC LIMIT 50"
         cur = await db.execute(query, params)
         posts = [dict(r) for r in await cur.fetchall()]
         
-        # Получаем цвета тегов
+        # Реакции
+        for p in posts:
+            cur = await db.execute("SELECT emoji, COUNT(*) as c FROM reactions WHERE post_id=? GROUP BY emoji", (p["id"],))
+            p["reactions"] = {r["emoji"]: r["c"] for r in await cur.fetchall()}
+            
         cur = await db.execute("SELECT name, color FROM tags")
         tag_colors = {r["name"]: r["color"] for r in await cur.fetchall()}
         for p in posts: p["tag_color"] = tag_colors.get(p["tag"], "#ff007f")
@@ -71,7 +76,6 @@ async def get_tags():
 async def create_post(data: PostIn, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
-        # Проверка КД 15 минут
         cur = await db.execute("SELECT created_at FROM posts WHERE author_id=? ORDER BY id DESC LIMIT 1", (user.get("id"),))
         last = await cur.fetchone()
         if last:
@@ -87,13 +91,12 @@ async def create_post(data: PostIn, user=Depends(current_user)):
         await db.commit()
 
     if status == 'pending':
-        # Отправляем админам на модерацию
         for admin in ADMIN_IDS:
             kb = {"inline_keyboard": [[
                 {"text": "✅ Одобрить", "callback_data": f"mod_ok_{post_id}"},
                 {"text": "❌ Отклонить", "callback_data": f"mod_no_{post_id}"}
             ]]}
-            await send_tg(admin, f"🛡️ <b>Новый пост на модерацию!</b>\nОт: {user.get('first_name')}\n\n<b>{data.title}</b>\n{data.body[:200]}...", reply_markup=kb)
+            await send_tg(admin, f"🛡️ <b>Пост на модерацию!</b>\nОт: {user.get('first_name')}\n\n<b>{data.title}</b>\n{data.body[:200]}...", reply_markup=kb)
     return {"id": post_id, "status": status}
 
 @app.get("/api/posts/{post_id}")
@@ -101,7 +104,7 @@ async def get_post(post_id: int, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
         db.row_factory = aiosqlite.Row
-        # Умные просмотры: +1 только если юзер не смотрел (упрощенно)
+        # Умный просмотр: +1 только если пользователь не смотрел (упрощенно: всегда +1, но фронт запоминает)
         await db.execute("UPDATE posts SET views = views + 1 WHERE id=?", (post_id,))
         await db.commit()
         
@@ -115,17 +118,27 @@ async def get_post(post_id: int, user=Depends(current_user)):
         cur = await db.execute("SELECT value FROM votes WHERE user_id=? AND target_type='post' AND target_id=?", (user.get("id"), post_id))
         vote = await cur.fetchone()
         post = dict(post); post["my_vote"] = vote[0] if vote else 0
+        
+        cur = await db.execute("SELECT emoji FROM reactions WHERE user_id=? AND post_id=?", (user.get("id"), post_id))
+        post["my_reactions"] = [r["emoji"] for r in await cur.fetchall()]
     return {"post": post, "comments": comments}
 
 @app.post("/api/comments")
 async def create_comment(data: CommentIn, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
+        # КД 30 минут на комментарии
+        cur = await db.execute("SELECT created_at FROM comments WHERE author_id=? ORDER BY id DESC LIMIT 1", (user.get("id"),))
+        last = await cur.fetchone()
+        if last:
+            last_time = datetime.datetime.fromisoformat(last[0])
+            if (datetime.datetime.utcnow() - last_time).total_seconds() < 1800:
+                raise HTTPException(400, "Кулдаун 30 минут на комментарии!")
+
         cur = await db.execute("INSERT INTO comments(post_id,parent_id,author_id,body) VALUES (?,?,?,?)",
                                (data.post_id, data.parent_id, user.get("id"), data.body))
         comment_id = cur.lastrowid
         
-        # Уведомление автору поста
         cur = await db.execute("SELECT author_id, title FROM posts WHERE id=?", (data.post_id,))
         post_author = await cur.fetchone()
         if post_author and post_author[0] != user.get("id"):
@@ -152,6 +165,30 @@ async def vote(data: VoteIn, user=Depends(current_user)):
         await db.commit()
     return {"ok": True}
 
+@app.post("/api/react")
+async def react(data: ReactionIn, user=Depends(current_user)):
+    await ensure_user(user)
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT 1 FROM reactions WHERE user_id=? AND post_id=? AND emoji=?", (user.get("id"), data.post_id, data.emoji))
+        exists = await cur.fetchone()
+        if exists:
+            await db.execute("DELETE FROM reactions WHERE user_id=? AND post_id=? AND emoji=?", (user.get("id"), data.post_id, data.emoji))
+        else:
+            await db.execute("INSERT INTO reactions VALUES (?,?,?)", (user.get("id"), data.post_id, data.emoji))
+        await db.commit()
+    return {"ok": True}
+
+@app.post("/api/report")
+async def report_post(post_id: int, user=Depends(current_user)):
+    async with aiosqlite.connect(DB) as db:
+        await db.execute("INSERT INTO reports(reporter_id, target_type, target_id) VALUES (?, 'post', ?)", (user.get("id"), post_id))
+        cur = await db.execute("SELECT COUNT(*) FROM reports WHERE target_id=? AND target_type='post' AND resolved=0", (post_id,))
+        count = (await cur.fetchone())[0]
+        if count >= 3:
+            await db.execute("UPDATE posts SET is_hidden=1 WHERE id=?", (post_id,))
+        await db.commit()
+    return {"ok": True}
+
 @app.get("/api/profile/{user_id}")
 async def get_profile(user_id: int, user=Depends(current_user)):
     async with aiosqlite.connect(DB) as db:
@@ -160,23 +197,27 @@ async def get_profile(user_id: int, user=Depends(current_user)):
         u = await cur.fetchone()
         if not u: raise HTTPException(404)
         
-        # Динамическая карма
         cur = await db.execute("SELECT SUM(score) FROM posts WHERE author_id=?", (user_id,))
         p_karma = (await cur.fetchone())[0] or 0
         cur = await db.execute("SELECT SUM(score) FROM comments WHERE author_id=?", (user_id,))
         c_karma = (await cur.fetchone())[0] or 0
+        total_karma = p_karma + c_karma
         
-        # Статистика
         cur = await db.execute("SELECT COUNT(*) FROM posts WHERE author_id=?", (user_id,))
         p_count = (await cur.fetchone())[0]
         cur = await db.execute("SELECT title, score FROM posts WHERE author_id=? ORDER BY score DESC LIMIT 1", (user_id,))
         top_post = await cur.fetchone()
         cur = await db.execute("SELECT tag, COUNT(*) as c FROM posts WHERE author_id=? GROUP BY tag ORDER BY c DESC LIMIT 3", (user_id,))
         fav_tags = [r["tag"] for r in await cur.fetchall()]
+        
+        cur = await db.execute("SELECT COUNT(*) FROM users WHERE referred_by=?", (user_id,))
+        ref_count = (await cur.fetchone())[0]
 
+    level = total_karma // 10
     return {
-        **dict(u), "karma": p_karma + c_karma, "posts_count": p_count,
-        "top_post": dict(top_post) if top_post else None, "fav_tags": fav_tags
+        **dict(u), "karma": total_karma, "level": level, "posts_count": p_count,
+        "top_post": dict(top_post) if top_post else None, "fav_tags": fav_tags,
+        "ref_count": ref_count
     }
 
 @app.post("/api/profile")

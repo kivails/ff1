@@ -1,4 +1,4 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
@@ -10,94 +10,46 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Pacifico&display=swap" rel="stylesheet">
 <style>
   :root { 
-    --bg: #0b0914; --glass: rgba(255,255,255,0.06); --border: rgba(255,255,255,0.15); 
-    --text: #fff; --muted: #a0a0a0; --accent: #ff007f; --accent-glow: rgba(255,0,127,0.8);
-    --cyan: #00f0ff; --cyan-glow: rgba(0,240,255,0.8);
+    --bg-img: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop');
+    --text: #f0f0f0; --accent: #ffb7c5; --accent-glow: rgba(255,183,197,0.4);
+    --glass: rgba(20, 20, 30, 0.6); --border: rgba(255,255,255,0.1);
   }
-  .theme-sakura { --bg: #1f111a; --text: #fff0f5; --accent: #ffb7c5; --accent-glow: rgba(255,183,197,0.8); --cyan: #ff8da1; }
-  .theme-cyber { --bg: #000; --text: #fcee0a; --accent: #fcee0a; --accent-glow: rgba(252,238,10,0.8); --cyan: #00f0ff; }
+  .theme-sakura { --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000&auto=format&fit=crop'); --text: #fff0f5; --accent: #ff8da1; --accent-glow: rgba(255,141,161,0.4); --glass: rgba(45, 27, 46, 0.6); }
+  .theme-sunset { --bg-img: url('https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000&auto=format&fit=crop'); --text: #ffebd6; --accent: #ff9a76; --accent-glow: rgba(255,154,118,0.4); --glass: rgba(50, 20, 10, 0.6); }
+  .theme-cyber { --bg-img: url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=1000&auto=format&fit=crop'); --text: #e0ffe0; --accent: #00ffcc; --accent-glow: rgba(0,255,204,0.4); --glass: rgba(5, 10, 10, 0.7); }
+  .theme-space { --bg-img: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000&auto=format&fit=crop'); --text: #e0e5ff; --accent: #9bb7ff; --accent-glow: rgba(155,183,255,0.4); --glass: rgba(10, 15, 30, 0.7); }
   
   * { box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
-  body { 
-    margin: 0; padding: 16px; padding-bottom: 100px; 
-    background: var(--bg); color: var(--text); min-height: 100vh; 
-    transition: background 0.4s, color 0.4s; 
-  }
+  body { margin: 0; padding: 16px; padding-bottom: 100px; background: var(--bg-img) center/cover no-repeat fixed; color: var(--text); min-height: 100vh; transition: color 0.4s; }
+  body::before { content: ''; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: -1; }
   
-  h1, h2, h3 { font-family: 'Pacifico', cursive; letter-spacing: 1px; }
-  
-  .card { 
-    background: var(--glass); backdrop-filter: blur(15px); 
-    border: 1px solid var(--border); border-radius: 24px; 
-    padding: 20px; margin-bottom: 20px; 
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.02);
-    transition: transform 0.2s;
-  }
+  h1, h2, h3 { font-family: 'Pacifico', cursive; letter-spacing: 1px; font-weight: 400; }
+  .card { background: var(--glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: transform 0.2s; }
   .card:active { transform: scale(0.98); }
-  
   .row { display: flex; align-items: center; gap: 12px; } .between { justify-content: space-between; }
-  .hint { color: var(--muted); font-size: 13px; font-weight: 700; } 
-  .title { font-weight: 900; font-size: 22px; margin: 10px 0; text-shadow: 0 0 10px var(--accent-glow); }
-  
-  button { 
-    background: linear-gradient(45deg, var(--accent), var(--cyan)); 
-    color: #000; border: none; border-radius: 14px; padding: 12px 24px; 
-    font-weight: 900; font-size: 15px; cursor: pointer; 
-    box-shadow: 0 0 15px var(--accent-glow); transition: all 0.2s;
-  }
+  .hint { color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 700; } 
+  .title { font-weight: 800; font-size: 20px; margin: 10px 0; }
+  button { background: var(--accent); color: #111; border: none; border-radius: 12px; padding: 12px 20px; font-weight: 800; font-size: 15px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px var(--accent-glow); }
   button:active { transform: scale(0.92); }
-  button.ghost { background: transparent; color: var(--cyan); border: 2px solid var(--cyan); box-shadow: none; }
-  
-  input, textarea { 
-    width: 100%; padding: 16px; border-radius: 16px; 
-    border: 1px solid var(--border); background: rgba(0,0,0,0.5); 
-    color: var(--cyan); font-size: 15px; margin-bottom: 16px; outline: none; 
-    transition: box-shadow 0.3s;
-  }
-  input:focus, textarea:focus { box-shadow: 0 0 15px var(--cyan-glow); border-color: var(--cyan); }
-  
-  .tag { 
-    display: inline-block; background: rgba(255,255,255,0.1); 
-    border: 1px solid var(--border); border-radius: 12px; 
-    padding: 6px 14px; font-size: 13px; font-weight: 900; 
-    color: var(--cyan); text-shadow: 0 0 5px var(--cyan-glow);
-  }
-  
-  .fab { 
-    position: fixed; right: 20px; bottom: 30px; width: 64px; height: 64px; 
-    border-radius: 50%; font-size: 36px; z-index: 10; 
-    display: flex; align-items: center; justify-content: center; 
-    background: linear-gradient(135deg, var(--accent), var(--cyan)); 
-    box-shadow: 0 0 25px var(--accent-glow);
-  }
-  .fab-profile { 
-    position: fixed; left: 20px; bottom: 30px; width: 64px; height: 64px; 
-    border-radius: 50%; font-size: 24px; z-index: 10; 
-    display: flex; align-items: center; justify-content: center; 
-    background: rgba(0,0,0,0.8); border: 2px solid var(--accent); color: var(--accent); 
-  }
-  
-  .reaction-btn { 
-    background: rgba(255,255,255,0.05); border: 1px solid var(--border); 
-    border-radius: 20px; padding: 6px 12px; font-size: 18px; 
-    cursor: pointer; color: #fff; box-shadow: none; transition: 0.2s;
-  }
-  .reaction-btn.active { background: rgba(255,0,127,0.3); border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
-  
-  /* Рамки */
-  .frame-gold { border: 4px solid #ffd700; box-shadow: 0 0 20px #ffd700; }
-  .frame-fire { border: 4px solid #ff4500; box-shadow: 0 0 20px #ff4500; }
-  .frame-sakura { border: 4px solid #ffb7c5; box-shadow: 0 0 20px #ffb7c5; }
-  
-  .level-bar { width: 100%; height: 12px; background: rgba(0,0,0,0.6); border-radius: 6px; overflow: hidden; margin-top: 10px; }
-  .level-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--cyan)); width: 0%; transition: width 0.5s; box-shadow: 0 0 10px var(--cyan-glow); }
-  
-  .loading { text-align: center; color: var(--cyan); margin-top: 60px; font-size: 20px; font-weight: 900; animation: pulse 1.5s infinite; }
-  @keyframes pulse { 50% { opacity: 0.5; text-shadow: 0 0 15px var(--cyan); } }
+  button.ghost { background: rgba(0,0,0,0.3); color: var(--accent); border: 1px solid var(--accent); box-shadow: none; }
+  input, textarea { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(0,0,0,0.4); color: var(--text); font-size: 15px; margin-bottom: 12px; outline: none; }
+  input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+  .tag { display: inline-block; background: rgba(0,0,0,0.3); border: 1px solid var(--accent); border-radius: 10px; padding: 4px 10px; font-size: 12px; font-weight: 800; color: var(--accent); }
+  .fab { position: fixed; right: 20px; bottom: 30px; width: 64px; height: 64px; border-radius: 50%; font-size: 32px; z-index: 10; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #111; box-shadow: 0 0 20px var(--accent-glow); }
+  .fab-profile { position: fixed; left: 20px; bottom: 30px; width: 64px; height: 64px; border-radius: 50%; font-size: 24px; z-index: 10; display: flex; align-items: center; justify-content: center; background: var(--glass); border: 2px solid var(--accent); color: var(--accent); backdrop-filter: blur(10px); }
+  .reaction-btn { background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 20px; padding: 6px 10px; font-size: 16px; cursor: pointer; color: var(--text); box-shadow: none; transition: 0.2s; }
+  .reaction-btn.active { background: var(--accent); color: #111; border-color: var(--accent); }
+  .frame-gold { border: 4px solid #ffd700; box-shadow: 0 0 15px #ffd700; }
+  .frame-fire { border: 4px solid #ff4500; box-shadow: 0 0 15px #ff4500; }
+  .frame-sakura { border: 4px solid #ffb7c5; box-shadow: 0 0 15px #ffb7c5; }
+  .level-bar { width: 100%; height: 10px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; margin-top: 8px; }
+  .level-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s; }
+  .loading { text-align: center; color: var(--accent); margin-top: 60px; font-size: 20px; font-weight: 800; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 50% { opacity: 0.5; } }
 </style>
 </head>
 <body>
-<audio id="bg-music" loop><source src="https://stream.zeno.fm/0r0xa792kwzuv" type="audio/mpeg"></audio>
+<audio id="bg-music" loop></audio>
 <div id="root"><div class="loading">Загрузка RaReads ⛩️</div></div>
 <script>
   const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
@@ -111,6 +63,17 @@
     return r.json();
   }
 
+  function CommentItem({ c, onProfile }) {
+    const react = async (emoji) => {
+        await api('/api/react', { method:'POST', body: JSON.stringify({ target_type: 'comment', target_id: c.id, emoji }) });
+    };
+    return e('div', { className: 'card', style: {padding: 12, marginBottom: 8} }, 
+        e('div', { className: 'hint', onClick: () => onProfile(c.author_id) }, `${c.badge} @${c.custom_nick || c.username}`), 
+        e('div', {style: {marginTop: 4, fontSize: 14}}, c.body),
+        e('div', {style: {marginTop: 8, display: 'flex', gap: 6}}, ['💖', '😂', '🔥'].map(r => e('button', {key: r, className: 'reaction-btn', onClick: () => react(r), style: {padding: '2px 6px', fontSize: 12}}, r)))
+    );
+  }
+
   function PostView({ id, onBack, onProfile }) {
     const [data, setData] = useState(null); const [text, setText] = useState('');
     const load = () => api('/api/posts/' + id).then(setData);
@@ -118,43 +81,50 @@
     if (!data) return e('div', {className:'loading'}, 'Читаем...');
     const { post, comments } = data;
     const submit = async () => { if(!text.trim()) return; try { await api('/api/comments', { method:'POST', body: JSON.stringify({ post_id: id, parent_id: null, body: text }) }); setText(''); load(); } catch(e) { alert(e.message); } };
-    const react = async (emoji) => { try { await api('/api/react', { method:'POST', body: JSON.stringify({ post_id: id, emoji }) }); load(); } catch(e) { alert(e.message); } };
+    const react = async (emoji) => { try { await api('/api/react', { method:'POST', body: JSON.stringify({ target_type: 'post', target_id: id, emoji }) }); load(); } catch(e) { alert(e.message); } };
+    const vote = async (val) => { try { await api('/api/vote', { method:'POST', body: JSON.stringify({ target_type: 'post', target_id: id, value: val }) }); load(); } catch(e) { alert(e.message); } };
 
     return e('div', null,
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
       e('div', { className: 'card' },
         e('div', { className: 'row between' }, e('span', { className: 'tag' }, post.tags.split(',').map(t => '#'+t.trim()).join(' ')), e('span', { className: 'hint', onClick: () => onProfile(post.author_id) }, `${post.badge} @${post.custom_nick || post.username}`)),
         e('h2', { className: 'title' }, post.title),
-        post.image_file_id && e('img', { src: '/api/image/' + post.id, style: {width:'100%', borderRadius:16, marginBottom:16, boxShadow: '0 0 20px rgba(0,0,0,0.5)'} }),
-        e('div', { style:{whiteSpace:'pre-wrap', lineHeight:1.7, fontSize:15} }, post.body),
-        e('div', { className: 'reactions', style: {display:'flex', gap:8, marginTop:16} }, ['💖', '😂', '🔥', '😭', '👎', '🤔'].map(r => e('button', { key: r, className: 'reaction-btn' + (post.my_reactions?.includes(r) ? ' active' : ''), onClick: () => react(r) }, r))),
+        post.image_file_id && e('img', { src: '/api/image/' + post.id, style: {width:'100%', borderRadius:12, marginBottom:12} }),
+        e('div', { style:{whiteSpace:'pre-wrap', lineHeight:1.6, fontSize:15} }, post.body),
+        e('div', { style: {display:'flex', gap:8, marginTop:16, flexWrap: 'wrap'} }, ['💖', '😂', '🔥', '😭', '👎', '🤔'].map(r => e('button', { key: r, className: 'reaction-btn' + (post.my_reactions?.includes(r) ? ' active' : ''), onClick: () => react(r) }, r))),
         e('div', { className: 'row between', style:{marginTop:20} },
-          e('div', { className: 'votes', style: {display:'flex', alignItems:'center', gap:10} }, e('button', { className: 'ghost', onClick: () => api('/api/vote', {method:'POST', body:JSON.stringify({target_type:'post', target_id:post.id, value:1})}).then(load) }, '▲'), e('span', { className: 'score', style: {fontWeight:900, color:'var(--cyan)', fontSize:18} }, post.score), e('button', { className: 'ghost', onClick: () => api('/api/vote', {method:'POST', body:JSON.stringify({target_type:'post', target_id:post.id, value:-1})}).then(load) }, '▼')),
+          e('div', { style: {display:'flex', alignItems:'center', gap:10} }, 
+            e('button', { className: 'ghost', onClick: () => vote(1), style: {padding: '6px 12px'} }, '▲'), 
+            e('span', { style: {fontWeight:900, fontSize:18, color:'var(--accent)'} }, post.score), 
+            e('button', { className: 'ghost', onClick: () => vote(-1), style: {padding: '6px 12px'} }, '▼')
+          ),
           e('span', { className: 'hint' }, `👁 ${post.views}`)
         )
       ),
-      e('h3', { style: {color: 'var(--cyan)'} }, '💬 Комментарии'),
-      e('textarea', { rows: 3, placeholder: 'Написать...', value: text, onChange: ev => setText(ev.target.value) }),
+      e('h3', { style: {color: 'var(--accent)'} }, '💬 Комментарии'),
+      e('textarea', { rows: 2, placeholder: 'Написать...', value: text, onChange: ev => setText(ev.target.value) }),
       e('button', { onClick: submit, style: {marginBottom: 20, width: '100%'} }, 'Отправить'),
-      comments.map(c => e('div', { key: c.id, className: 'card', style: {padding: 12, marginBottom: 8} }, e('div', { className: 'hint', onClick: () => onProfile(c.author_id) }, `${c.badge} @${c.custom_nick || c.username}`), e('div', {style: {marginTop: 4}} , c.body)))
+      comments.map(c => e(CommentItem, { key: c.id, c, onProfile }))
     );
   }
 
   function Profile({ userId, onBack }) {
-    const [profile, setProfile] = useState(null);
-    const [editMode, setEditMode] = useState(false);
+    const [profile, setProfile] = useState(null); const [editMode, setEditMode] = useState(false);
     const [nick, setNick] = useState(''); const [bio, setBio] = useState('');
+    const [giftTarget, setGiftTarget] = useState(''); const [giftType, setGiftType] = useState('heart');
+
     const load = () => api('/api/profile/' + (userId || ME.id)).then(p => { setProfile(p); setNick(p.custom_nick || ''); setBio(p.bio || ''); });
     useEffect(() => { load(); }, [userId]);
     if (!profile) return e('div', {className:'loading'}, 'Загрузка...');
     const isMe = profile.id === ME.id;
     const save = async () => { await api('/api/profile', { method:'POST', body: JSON.stringify({ custom_nick: nick, bio: bio }) }); setEditMode(false); load(); };
+    const buyGift = async () => { if(!giftTarget) return; try { await api('/api/buy_gift', { method:'POST', body: JSON.stringify({ to_id: parseInt(giftTarget), gift: giftType }) }); alert('Подарок отправлен!'); load(); } catch(e) { alert(e.message); } };
 
     return e('div', null,
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
       e('div', { className: 'card', style: {textAlign: 'center'} },
-        e('img', { src: `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.id}`, className: 'frame-'+profile.frame, style: {width: 110, height: 110, borderRadius: '50%', background: 'rgba(0,0,0,0.5)'} }),
-        e('h2', { style: {color: 'var(--accent)', margin: '16px 0 4px', textShadow: '0 0 15px var(--accent-glow)'} }, `${profile.badge} ${profile.custom_nick || profile.first_name}`),
+        e('img', { src: `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.id}`, className: 'frame-'+profile.frame, style: {width: 100, height: 100, borderRadius: '50%', background:'rgba(0,0,0,0.5)'} }),
+        e('h2', { style: {color: 'var(--accent)', margin: '16px 0 4px'} }, `${profile.badge} ${profile.custom_nick || profile.first_name}`),
         e('p', { className: 'hint' }, `@${profile.username || 'no_username'} · ID: ${profile.id}`),
         
         editMode ? e('div', {style: {marginTop:20}},
@@ -162,17 +132,17 @@
           e('input', { placeholder: 'О себе', value: bio, onChange: ev => setBio(ev.target.value) }),
           e('button', { onClick: save, style: {width:'100%'} }, 'Сохранить')
         ) : e('div', {style: {marginTop:20}},
-          e('p', { style: {fontStyle: 'italic', margin: '12px 0', fontSize: 15} }, profile.bio || 'Тут пока пусто...'),
+          e('p', { style: {fontStyle: 'italic', margin: '12px 0'} }, profile.bio || 'Тут пока пусто...'),
           isMe && e('button', { onClick: () => setEditMode(true), className: 'ghost', style: {width: '100%'} }, '✏️ Редактировать')
         ),
 
-        e('div', { className: 'row between', style: {marginTop: 24, background: 'rgba(0,0,0,0.4)', padding: 16, borderRadius: 16} },
-          e('div', null, e('div', {className:'hint'}, 'Карма'), e('b', {style:{color:'var(--cyan)', fontSize:18}}, profile.karma)),
-          e('div', null, e('div', {className:'hint'}, 'Кристаллы'), e('b', {style:{color:'var(--accent)', fontSize:18}}, profile.crystals)),
-          e('div', null, e('div', {className:'hint'}, 'Постов'), e('b', {style:{fontSize:18}}, profile.posts_count || 0))
+        e('div', { className: 'row between', style: {marginTop: 24, background: 'rgba(0,0,0,0.4)', padding: 12, borderRadius: 12} },
+          e('div', null, e('div', {className:'hint'}, 'Карма'), e('b', {style:{color:'var(--accent)'}}, profile.karma)),
+          e('div', null, e('div', {className:'hint'}, 'Кристаллы'), e('b', null, profile.crystals)),
+          e('div', null, e('div', {className:'hint'}, 'Постов'), e('b', null, profile.posts_count || 0))
         ),
         e('div', {style:{marginTop:24}}, 
-          e('div', {className:'hint', marginBottom:8}, `Уровень ${profile.level} (${profile.karma % 10}/10)`), 
+          e('div', {className:'hint', marginBottom:8}, `Уровень ${profile.level}`), 
           e('div', {className:'level-bar'}, e('div', {className:'level-fill', style:{width: `${(profile.karma % 10) * 10}%`}}))
         ),
         profile.top_post && e('div', {style:{marginTop:24, textAlign:'left'}},
@@ -180,27 +150,46 @@
           e('div', {style:{background:'rgba(0,0,0,0.4)', padding:12, borderRadius:12}}, profile.top_post.title)
         ),
         e('div', {style:{marginTop:24}},
+          e('div', {className:'hint', marginBottom:8}, '🏆 Достижения:'),
+          profile.achievements?.length ? profile.achievements.map(a => e('span', {key: a, className: 'tag', style:{margin:4}}, a)) : e('span', {className:'hint'}, 'Пока нет')
+        ),
+        e('div', {style:{marginTop:24}},
           e('div', {className:'hint', marginBottom:8}, '🎁 Подарки:'),
           profile.gifts?.length ? profile.gifts.map(g => e('span', {key: g.name, className: 'tag', style:{margin:4}}, `${g.name} x${g.count}`)) : e('span', {className:'hint'}, 'Пока нет подарков')
+        ),
+        isMe && e('div', {style:{marginTop:24, paddingTop:16, borderTop:'1px solid var(--border)'}},
+          e('div', {className:'hint', marginBottom:8}, '🎁 Подарить другу (ID):'),
+          e('input', { placeholder: 'ID получателя', value: giftTarget, onChange: ev => setGiftTarget(ev.target.value) }),
+          e('select', { value: giftType, onChange: ev => setGiftType(ev.target.value), style: {width: '100%', padding: 14, borderRadius: 12, background: 'rgba(0,0,0,0.4)', color: '#fff', marginBottom: 12} },
+            e('option', {value: 'heart'}, '💖 Сердечко (10💎)'),
+            e('option', {value: 'star'}, '⭐ Звезда (30💎)'),
+            e('option', {value: 'crown'}, '👑 Корона (100💎)')
+          ),
+          e('button', { onClick: buyGift, style: {width:'100%'} }, 'Отправить подарок')
         )
       )
     );
   }
 
-  function Settings({ onBack, setTheme, currentTheme, music, setMusic }) {
+  function Settings({ onBack, setTheme, currentTheme, music, setMusic, radioIndex, setRadioIndex }) {
     return e('div', null,
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
-      e('h2', {style:{color:'var(--cyan)'}}, '⚙️ Настройки'),
+      e('h2', {style:{color:'var(--accent)'}}, '⚙️ Настройки'),
       e('div', { className: 'card' },
         e('h3', null, 'Выбор темы'),
-        e('div', { className: 'row', style: {flexWrap: 'wrap'} },
-          ['neon', 'sakura', 'cyber'].map(t => e('button', {
+        e('div', { className: 'row', style: {flexWrap: 'wrap', gap: 8} },
+          ['default', 'sakura', 'sunset', 'cyber', 'space'].map(t => e('button', {
             key: t, className: currentTheme === t ? '' : 'ghost', onClick: () => setTheme(t),
-            style: {flex: 1, margin: 4, padding: '12px 0', textTransform: 'uppercase'}
+            style: {flex: 1, margin: 4, padding: '10px 0', textTransform: 'capitalize'}
           }, t))
         ),
         e('h3', {marginTop: 24}, 'Музыка'),
-        e('button', { onClick: () => setMusic(!music), className: music ? '' : 'ghost', style: {width: '100%'} }, music ? '🔊 Выключить радио' : '🔇 Включить радио')
+        e('button', { onClick: () => setMusic(!music), className: music ? '' : 'ghost', style: {width: '100%'} }, music ? '🔊 Выключить радио' : '🔇 Включить радио'),
+        e('h3', {marginTop: 24}, 'Переключить станцию'),
+        e('div', { className: 'row', style: {gap: 8} },
+          e('button', { onClick: () => setRadioIndex(0), className: radioIndex === 0 ? '' : 'ghost', style: {flex: 1} }, '🎵 Станция 1'),
+          e('button', { onClick: () => setRadioIndex(1), className: radioIndex === 1 ? '' : 'ghost', style: {flex: 1} }, '🎶 Станция 2')
+        )
       )
     );
   }
@@ -229,11 +218,13 @@
 
   function App() {
     const [route, setRoute] = useState({ view: 'list' });
-    const [theme, setThemeState] = useState(localStorage.getItem('theme') || 'neon');
+    const [theme, setThemeState] = useState(localStorage.getItem('theme') || 'default');
     const [posts, setPosts] = useState([]);
     const [search, setSearch] = useState('');
     const [sort, setSort] = useState('new');
     const [music, setMusic] = useState(false);
+    const [radioIndex, setRadioIndex] = useState(0);
+    const [settings, setSettings] = useState({});
 
     useEffect(() => { 
         let url = `/api/posts?sort=${sort}`;
@@ -242,21 +233,28 @@
     }, [search, sort]);
     
     useEffect(() => { 
+        api('/api/settings').then(s => setSettings(s));
+    }, []);
+
+    useEffect(() => { 
         const audio = document.getElementById('bg-music'); 
-        if (music) audio.play().catch(()=>{}); else audio.pause(); 
-    }, [music]);
+        if (music) {
+            audio.src = settings[`bg_music_${radioIndex + 1}`] || '';
+            audio.play().catch(()=>{}); 
+        } else audio.pause(); 
+    }, [music, radioIndex, settings]);
 
     const setTheme = (t) => { setThemeState(t); localStorage.setItem('theme', t); };
 
     if (route.view === 'profile') return e(Profile, { userId: route.id, onBack: () => setRoute({view:'list'}) });
     if (route.view === 'post') return e(PostView, { id: route.id, onBack: () => setRoute({view:'list'}), onProfile: id => setRoute({view:'profile', id}) });
     if (route.view === 'compose') return e(Compose, { onBack: () => setRoute({view:'list'}), onCreated: () => setRoute({view:'list'}) });
-    if (route.view === 'settings') return e(Settings, { onBack: () => setRoute({view:'list'}), setTheme, currentTheme: theme, music, setMusic });
+    if (route.view === 'settings') return e(Settings, { onBack: () => setRoute({view:'list'}), setTheme, currentTheme: theme, music, setMusic, radioIndex, setRadioIndex });
 
     return e('div', { className: `theme-${theme}` },
-      e('div', { className: 'row between', style: {marginBottom: 20} }, e('h1', { style: {margin: 0, color: '#fff', fontSize: 32, textShadow: '0 0 20px var(--accent-glow)'} }, '⛩️ RaReads'), e('button', { className: 'ghost', onClick: () => setRoute({view:'settings'}) }, '⚙️')),
+      e('div', { className: 'row between', style: {marginBottom: 20} }, e('h1', { style: {margin: 0, color: '#fff', fontSize: 32, textShadow: '0 2px 10px rgba(0,0,0,0.5)'} }, '⛩️ RaReads'), e('button', { className: 'ghost', onClick: () => setRoute({view:'settings'}) }, '⚙️')),
       
-      e('input', { placeholder: '🔍 Поиск по тегу (например anime)...', value: search, onChange: ev => setSearch(ev.target.value) }),
+      e('input', { placeholder: '🔍 Поиск по тегу...', value: search, onChange: ev => setSearch(ev.target.value) }),
       
       e('div', { className: 'row', style: {marginBottom: 20} },
         e('button', { className: sort === 'new' ? '' : 'ghost', onClick: () => setSort('new'), style: {flex: 1} }, '🆕 Недавнее'),
@@ -266,7 +264,8 @@
       posts.map(p => e('div', { key: p.id, className: 'card', onClick: () => setRoute({view:'post', id: p.id}) },
         e('div', { className: 'row between' }, e('span', { className: 'tag' }, p.tags.split(',').map(t => '#'+t.trim()).join(' ')), e('span', { className: 'hint' }, `${p.badge || ''} @${p.custom_nick || p.username}`)),
         e('div', { className: 'title' }, p.title),
-        e('div', { className: 'hint', marginTop: 8 }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`)
+        e('div', { className: 'hint', marginTop: 8 }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`),
+        e('div', { style: {display: 'flex', gap: 4, marginTop: 8} }, Object.entries(p.reactions || {}).map(([r, c]) => e('span', {key: r, style: {background:'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: 10, fontSize: 12}}, `${r} ${c}`)))
       )),
 
       e('button', { className: 'fab', onClick: () => setRoute({view:'compose'}) }, '+'),

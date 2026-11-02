@@ -1,7 +1,7 @@
-import os, random, asyncio
+import os, random, asyncio, httpx
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import WebAppInfo, MenuButtonCommands
+from aiogram.types import WebAppInfo, MenuButtonCommands, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import aiosqlite
 from database import DB
@@ -13,14 +13,13 @@ ADMIN_IDS = {5024935475}
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
 
-# Внутренний пинг для Render
 async def keep_alive():
     while True:
         try:
             async with httpx.AsyncClient() as client:
                 await client.get(f"{APP_URL}/ping")
         except: pass
-        await asyncio.sleep(300) # Пинг каждые 5 минут
+        await asyncio.sleep(300)
 
 @dp.message(CommandStart())
 async def start_cmd(message: types.Message):
@@ -29,17 +28,23 @@ async def start_cmd(message: types.Message):
     kb.button(text="📖 Открыть RaReads", web_app=WebAppInfo(url=APP_URL))
     await message.answer_animation(animation=GIF_URL, caption=f"Привет, <b>{message.from_user.first_name}</b>! ⛩️\n\nДобро пожаловать в RaReads!", parse_mode="HTML", reply_markup=kb.as_markup())
 
-@dp.message(Command("radio"))
-async def radio_cmd(message: types.Message):
-    await message.answer("🎵 Переключить радио можно в настройках приложения (нажми на шестеренку ⚙️)")
+@dp.message(Command("backup"))
+async def backup_cmd(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS: return
+    if os.path.exists(DB):
+        await message.answer_document(FSInputFile(DB), caption="📁 Бэкап базы данных")
+    else:
+        await message.answer("Файл базы данных не найден.")
 
-@dp.message(Command("ach"))
-async def ach_cmd(message: types.Message):
-    async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT ach_name FROM achievements WHERE user_id=?", (message.from_user.id,))
-        achs = [r[0] for r in await cur.fetchall()]
-    if not achs: return await message.answer("У тебя пока нет достижений. Напиши первый пост!")
-    await message.answer(f"🏆 Твои достижения:\n" + "\n".join(achs))
+@dp.message(Command("restore"))
+async def restore_cmd(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS: return
+    if not message.reply_to_message or not message.reply_to_message.document:
+        return await message.answer("Ответь на файл с базой данных командой /restore")
+    file_id = message.reply_to_message.document.file_id
+    file = await bot.get_file(file_id)
+    await bot.download_file(file.file_path, DB)
+    await message.answer("✅ База данных восстановлена! (Перезапусти сервис)")
 
 @dp.message(F.audio | F.document) 
 async def handle_music(message: types.Message):
@@ -53,7 +58,7 @@ async def handle_music(message: types.Message):
 @dp.message(Command("admin"))
 async def admin_cmd(message: types.Message):
     if message.from_user.id not in ADMIN_IDS: return
-    await message.answer("🛡️ Админ-команды:\n/ban <id>\n/give_crystals <id> <кол-во>\n/badge <id> <эмодзи>\n/tag <название> <#цвет>\n\nОтправь аудио, чтобы сменить музыку.")
+    await message.answer("🛡️ Админ-команды:\n/ban <id>\n/give_crystals <id> <кол-во>\n/badge <id> <эмодзи>\n/tag <название> <#цвет>\n/backup - сохранить БД\n\nОтправь аудио, чтобы сменить музыку.")
 
 @dp.message(Command("ban"))
 async def ban_cmd(message: types.Message):
@@ -111,8 +116,7 @@ async def mod_action(callback: types.CallbackQuery):
 async def set_commands():
     await bot.set_my_commands([
         types.BotCommand(command="start", description="Запустить ⛩️"),
-        types.BotCommand(command="ach", description="Мои достижения 🏆"),
-        types.BotCommand(command="radio", description="Радио 🎵"),
+        types.BotCommand(command="backup", description="Бэкап БД 📁"),
         types.BotCommand(command="admin", description="Админ 🛡️"),
     ])
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())

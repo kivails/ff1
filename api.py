@@ -23,11 +23,9 @@ async def ensure_user(user):
 
 async def check_achievements(user_id):
     async with aiosqlite.connect(DB) as db:
-        # Достижение: Первый пост
         cur = await db.execute("SELECT COUNT(*) FROM posts WHERE author_id=?", (user_id,))
         if (await cur.fetchone())[0] >= 1:
             await db.execute("INSERT OR IGNORE INTO achievements VALUES (?, 'first_post')", (user_id,))
-        # Достижение: 100 кармы
         cur = await db.execute("SELECT SUM(score) FROM posts WHERE author_id=?", (user_id,))
         p_karma = (await cur.fetchone())[0] or 0
         if p_karma >= 100:
@@ -67,7 +65,6 @@ async def list_posts(sort: str = "new", q: str | None = None, user=Depends(curre
         query += " LIMIT 50"
         cur = await db.execute(query, params)
         posts = [dict(r) for r in await cur.fetchall()]
-        
         for p in posts:
             cur = await db.execute("SELECT emoji, COUNT(*) as c FROM reactions WHERE target_type='post' AND target_id=? GROUP BY emoji", (p["id"],))
             p["reactions"] = {r["emoji"]: r["c"] for r in await cur.fetchall()}
@@ -86,7 +83,6 @@ async def create_post(data: PostIn, user=Depends(current_user)):
         await db.execute("UPDATE users SET crystals = crystals + 10 WHERE id=?", (user.get("id"),))
         await db.commit()
     await check_achievements(user.get("id"))
-    
     if status == 'pending':
         for admin in ADMIN_IDS:
             kb = {"inline_keyboard": [[{"text": "✅ Одобрить", "callback_data": f"mod_ok_{post_id}"},{"text": "❌ Отклонить", "callback_data": f"mod_no_{post_id}"}]]}
@@ -113,7 +109,6 @@ async def get_post(post_id: int, user=Depends(current_user)):
         if not post: raise HTTPException(404)
         cur = await db.execute("SELECT c.*, u.username, u.first_name, u.custom_nick, u.badge FROM comments c JOIN users u ON u.id=c.author_id WHERE c.post_id=? AND c.is_hidden=0 ORDER BY c.created_at", (post_id,))
         comments = [dict(r) for r in await cur.fetchall()]
-        
         cur = await db.execute("SELECT emoji FROM reactions WHERE user_id=? AND target_type='post' AND target_id=?", (user.get("id"), post_id))
         post = dict(post); post["my_reactions"] = [r["emoji"] for r in await cur.fetchall()]
     return {"post": post, "comments": comments}

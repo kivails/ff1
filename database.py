@@ -9,12 +9,13 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, 
     bio TEXT DEFAULT '', custom_nick TEXT, theme TEXT DEFAULT 'neon',
-    crystals INTEGER DEFAULT 0, frame TEXT DEFAULT 'none',
-    is_banned INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    crystals INTEGER DEFAULT 0, frame TEXT DEFAULT 'none', badge TEXT DEFAULT '',
+    is_banned INTEGER DEFAULT 0, last_daily TIMESTAMP,
+    referred_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT, author_id INTEGER NOT NULL, 
-    title TEXT NOT NULL, body TEXT NOT NULL, tag TEXT DEFAULT 'general', 
+    title TEXT NOT NULL, body TEXT NOT NULL, tags TEXT DEFAULT 'general', 
     image_file_id TEXT, score INTEGER DEFAULT 0, views INTEGER DEFAULT 0, 
     is_hidden INTEGER DEFAULT 0, status TEXT DEFAULT 'approved', 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -38,10 +39,13 @@ CREATE TABLE IF NOT EXISTS reactions (
     user_id INTEGER NOT NULL, post_id INTEGER NOT NULL, 
     emoji TEXT NOT NULL, PRIMARY KEY(user_id, post_id, emoji)
 );
+CREATE TABLE IF NOT EXISTS gifts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, from_id INTEGER NOT NULL, 
+    to_id INTEGER NOT NULL, gift_name TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS tags (
     name TEXT PRIMARY KEY, color TEXT DEFAULT '#ff007f', posts_count INTEGER DEFAULT 0
 );
-CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(title, body, content='posts', content_rowid='id');
 """
 
 async def init_db():

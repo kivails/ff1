@@ -1,7 +1,7 @@
 import json, os, httpx, datetime
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import aiosqlite
@@ -221,6 +221,21 @@ async def get_image(post_id: int):
         path = r.json()["result"]["file_path"]
         img = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}")
     return StreamingResponse(iter([img.content]), media_type="image/jpeg")
+
+@app.get("/api/music")
+async def get_music():
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT value FROM settings WHERE key='music_url'")
+        row = await cur.fetchone()
+    if not row or not row[0]: raise HTTPException(404)
+    file_id = row[0]
+    if file_id.startswith('http'): return RedirectResponse(file_id)
+    async with httpx.AsyncClient() as c:
+        r = await c.get(f"{TG_API}/getFile?file_id={file_id}")
+        if not r.json().get("ok"): raise HTTPException(500, "Ошибка Telegram API")
+        path = r.json()["result"]["file_path"]
+        file_resp = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}", timeout=60)
+    return StreamingResponse(iter([file_resp.content]), media_type="audio/mpeg")
 
 @app.get("/api/settings")
 async def get_settings():

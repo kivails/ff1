@@ -27,8 +27,7 @@ async def check_achievements(user_id):
         if (await cur.fetchone())[0] >= 1:
             await db.execute("INSERT OR IGNORE INTO achievements VALUES (?, 'first_post')", (user_id,))
         cur = await db.execute("SELECT SUM(score) FROM posts WHERE author_id=?", (user_id,))
-        p_karma = (await cur.fetchone())[0] or 0
-        if p_karma >= 100:
+        if ((await cur.fetchone())[0] or 0) >= 100:
             await db.execute("INSERT OR IGNORE INTO achievements VALUES (?, 'karma_100')", (user_id,))
         await db.commit()
 
@@ -46,8 +45,7 @@ class GiftIn(BaseModel):
     to_id: int; gift: str
 
 @app.get("/ping")
-async def ping():
-    return {"status": "alive"}
+async def ping(): return {"status": "alive"}
 
 @app.get("/api/posts")
 async def list_posts(sort: str = "new", q: str | None = None, user=Depends(current_user)):
@@ -74,8 +72,7 @@ async def list_posts(sort: str = "new", q: str | None = None, user=Depends(curre
 async def create_post(data: PostIn, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
-        tags_list = [t.strip().replace('#', '') for t in data.tags.split(',') if t.strip()]
-        tags_str = ', '.join(tags_list[:3])
+        tags_str = ', '.join([t.strip().replace('#', '') for t in data.tags.split(',') if t.strip()][:3]) or 'general'
         status = 'approved' if user.get("id") in ADMIN_IDS else 'pending'
         cur = await db.execute("INSERT INTO posts(author_id,title,body,tags,image_file_id,status) VALUES (?,?,?,?,?,?)",
                                (user.get("id"), data.title, data.body, tags_str, data.image_file_id, status))
@@ -83,6 +80,7 @@ async def create_post(data: PostIn, user=Depends(current_user)):
         await db.execute("UPDATE users SET crystals = crystals + 10 WHERE id=?", (user.get("id"),))
         await db.commit()
     await check_achievements(user.get("id"))
+    
     if status == 'pending':
         for admin in ADMIN_IDS:
             kb = {"inline_keyboard": [[{"text": "✅ Одобрить", "callback_data": f"mod_ok_{post_id}"},{"text": "❌ Отклонить", "callback_data": f"mod_no_{post_id}"}]]}
@@ -93,6 +91,17 @@ async def create_post(data: PostIn, user=Depends(current_user)):
                 else:
                     await client.post(f"{TG_API}/sendMessage", data={"chat_id": admin, "text": caption, "parse_mode": "HTML", "reply_markup": json.dumps(kb)})
     return {"id": post_id, "status": status}
+
+@app.delete("/api/posts/{post_id}")
+async def delete_post(post_id: int, user=Depends(current_user)):
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT author_id FROM posts WHERE id=?", (post_id,))
+        row = await cur.fetchone()
+        if not row: raise HTTPException(404)
+        if row[0] != user.get("id") and user.get("id") not in ADMIN_IDS: raise HTTPException(403)
+        await db.execute("DELETE FROM posts WHERE id=?", (post_id,))
+        await db.commit()
+    return {"ok": True}
 
 @app.get("/api/posts/{post_id}")
 async def get_post(post_id: int, user=Depends(current_user)):
@@ -149,6 +158,17 @@ async def react(data: ReactionIn, user=Depends(current_user)):
         else:
             if len(my_reactions) >= max_reactions: raise HTTPException(400, "Лимит реакций!")
             await db.execute("INSERT INTO reactions VALUES (?,?,?,?)", (user.get("id"), data.target_type, data.target_id, data.emoji))
+        await db.commit()
+    return {"ok": True}
+
+@app.post("/api/buy_frame")
+async def buy_frame(frame: str, user=Depends(current_user)):
+    costs = {"gold": 50, "fire": 100, "sakura": 150}
+    if frame not in costs: raise HTTPException(400)
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
+        if (await cur.fetchone())[0] < costs[frame]: raise HTTPException(400, "Мало кристаллов!")
+        await db.execute("UPDATE users SET crystals = crystals - ?, frame = ? WHERE id=?", (costs[frame], frame, user.get("id")))
         await db.commit()
     return {"ok": True}
 

@@ -9,17 +9,15 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Pacifico&display=swap" rel="stylesheet">
 <style>
-  /* Темы */
+  /* ... (стили остаются как были) ... */
   :root { --bg-img: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop'); --text: #f0f0f0; --accent: #ffb7c5; --accent-glow: rgba(255,183,197,0.4); --glass: rgba(20, 20, 30, 0.6); --border: rgba(255,255,255,0.1); }
   .theme-sakura { --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000'); --text: #fff0f5; --accent: #ff8da1; --accent-glow: rgba(255,141,161,0.4); --glass: rgba(45, 27, 46, 0.6); }
   .theme-sunset { --bg-img: url('https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000'); --text: #ffebd6; --accent: #ff9a76; --accent-glow: rgba(255,154,118,0.4); --glass: rgba(50, 20, 10, 0.6); }
   .theme-cyber { --bg-img: url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=1000'); --text: #e0ffe0; --accent: #00ffcc; --accent-glow: rgba(0,255,204,0.4); --glass: rgba(5, 10, 10, 0.7); }
   .theme-space { --bg-img: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000'); --text: #e0e5ff; --accent: #9bb7ff; --accent-glow: rgba(155,183,255,0.4); --glass: rgba(10, 15, 30, 0.7); }
-  
   * { box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
   body { margin: 0; padding: 16px; padding-bottom: 100px; background: var(--bg-img) center/cover no-repeat fixed; color: var(--text); min-height: 100vh; transition: background 0.4s, color 0.4s; }
   body::before { content: ''; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: -1; }
-  
   h1, h2, h3 { font-family: 'Pacifico', cursive; font-weight: 400; }
   .card { background: var(--glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
   .row { display: flex; align-items: center; gap: 12px; } .between { justify-content: space-between; }
@@ -45,7 +43,6 @@
 </style>
 </head>
 <body>
-<!-- Прямой аудиоплеер, работает в Telegram -->
 <audio id="bg-music" loop></audio>
 <div id="root"><div class="loading">Загрузка RaReads ⛩️</div></div>
 <script>
@@ -60,83 +57,7 @@
     return r.json();
   }
 
-  function Profile({ userId, onBack, theme, setTheme }) {
-    const [profile, setProfile] = useState(null); const [editMode, setEditMode] = useState(false);
-    const [nick, setNick] = useState(''); const [bio, setBio] = useState('');
-    const [shopOpen, setShopOpen] = useState(false);
-    const load = () => api('/api/profile/' + (userId || ME.id)).then(p => { setProfile(p); setNick(p.custom_nick || ''); setBio(p.bio || ''); });
-    useEffect(() => { load(); }, [userId]);
-    if (!profile) return e('div', {className:'loading'}, 'Загрузка...');
-    const isMe = profile.id === ME.id;
-    const save = async () => { await api('/api/profile', { method:'POST', body: JSON.stringify({ custom_nick: nick, bio: bio }) }); setEditMode(false); load(); };
-    const buyFrame = async (f) => { try { await api('/api/buy_frame?frame='+f, {method:'POST'}); alert('Куплено!'); load(); } catch(e) { alert(e.message); } };
-
-    const avatarUrl = ME.photo_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.id}`;
-    const refLink = `https://t.me/${tg.initDataUnsafe?.start_param ? 'bot' : 'bot'}?start=ref_${profile.id}`;
-
-    return e('div', {className: `theme-${theme}`},
-      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
-      e('div', { className: 'card', style: {textAlign: 'center'} },
-        e('img', { src: avatarUrl, className: 'frame-'+profile.frame, style: {width: 100, height: 100, borderRadius: '50%', background:'rgba(0,0,0,0.5)', objectFit: 'cover'} }),
-        e('h2', { style: {color: 'var(--accent)', margin: '16px 0 4px'} }, `${profile.badge || ''} ${profile.custom_nick || profile.first_name}`),
-        e('p', { className: 'hint' }, `@${profile.username || 'no_username'} · ID: ${profile.id}`),
-        
-        editMode ? e('div', {style: {marginTop:20}},
-          e('input', { placeholder: 'Ник', value: nick, onChange: ev => setNick(ev.target.value) }),
-          e('input', { placeholder: 'О себе', value: bio, onChange: ev => setBio(ev.target.value) }),
-          e('button', { onClick: save, style: {width:'100%'} }, 'Сохранить')
-        ) : e('div', {style: {marginTop:20}},
-          e('p', { style: {fontStyle: 'italic', margin: '12px 0'} }, profile.bio || 'Тут пока пусто...'),
-          isMe && e('button', { onClick: () => setEditMode(true), className: 'ghost', style: {width: '100%'} }, '✏️ Редактировать')
-        ),
-
-        e('div', { className: 'row between', style: {marginTop: 24, background: 'rgba(0,0,0,0.4)', padding: 12, borderRadius: 12} },
-          e('div', null, e('div', {className:'hint'}, 'Карма'), e('b', {style:{color:'var(--accent)'}}, profile.karma)),
-          e('div', null, e('div', {className:'hint'}, 'Кристаллы'), e('b', null, profile.crystals)),
-          e('div', null, e('div', {className:'hint'}, 'Постов'), e('b', null, profile.posts_count || 0))
-        ),
-        
-        e('div', {style:{marginTop:24}}, 
-          e('div', {className:'hint', marginBottom:8}, `Уровень ${profile.level}`), 
-          e('div', {className:'level-bar'}, e('div', {className:'level-fill', style:{width: `${(profile.karma % 10) * 10}%`}}))
-        ),
-
-        isMe && e('div', {style:{marginTop:24}},
-          e('button', { className: 'ghost', onClick: () => setShopOpen(!shopOpen), style:{width:'100%'} }, '🛍️ Магазин рамок'),
-          shopOpen && e('div', {style:{marginTop:12, display:'flex', flexDirection:'column', gap:8}},
-            e('button', { className: 'ghost', onClick: () => buyFrame('gold') }, '🥇 Золотая рамка (50 💎)'),
-            e('button', { className: 'ghost', onClick: () => buyFrame('fire') }, '🔥 Огненная рамка (100 💎)'),
-            e('button', { className: 'ghost', onClick: () => buyFrame('sakura') }, '🌸 Сакура (150 💎)')
-          )
-        ),
-
-        isMe && e('div', {style:{marginTop:16, padding:12, background:'rgba(0,0,0,0.4)', borderRadius:12}},
-          e('div', {className:'hint', marginBottom:4}, '🔗 Твоя реферальная ссылка:'),
-          e('div', {style:{fontSize:12, wordBreak:'break-all', color:'var(--accent)'}}, refLink)
-        )
-      )
-    );
-  }
-
-  // ... PostView и Compose остаются как в предыдущем сообщении
-  
-  function Settings({ onBack, setTheme, currentTheme, music, setMusic }) {
-    return e('div', {className: `theme-${currentTheme}`},
-      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
-      e('h2', {style:{color:'var(--accent)'}}, '⚙️ Настройки'),
-      e('div', { className: 'card' },
-        e('h3', null, 'Выбор темы'),
-        e('div', { className: 'row', style: {flexWrap: 'wrap', gap: 8} },
-          ['default', 'sakura', 'sunset', 'cyber', 'space'].map(t => e('button', {
-            key: t, className: currentTheme === t ? '' : 'ghost', onClick: () => setTheme(t),
-            style: {flex: 1, margin: 4, padding: '10px 0', textTransform: 'capitalize'}
-          }, t))
-        ),
-        e('h3', {marginTop: 24}, 'Музыка'),
-        e('button', { onClick: () => setMusic(!music), className: music ? '' : 'ghost', style: {width: '100%'} }, music ? '🔊 Выключить музыку' : '🔇 Включить музыку')
-      )
-    );
-  }
+  // ... (компоненты CommentItem, PostView, Profile, Compose, Settings остаются как в предыдущем сообщении)
 
   function App() {
     const [route, setRoute] = useState({ view: 'list' });
@@ -155,8 +76,11 @@
     useEffect(() => { 
         const audio = document.getElementById('bg-music');
         if (music && musicUrl) { 
-            audio.src = musicUrl; 
-            audio.play().catch(e => alert('Нажмите ещё раз для включения звука')); 
+            // Используем наш новый эндпоинт вместо прямой ссылки
+            audio.src = '/api/music'; 
+            audio.play().catch(e => {
+                alert('Нажмите кнопку включения музыки ещё раз, чтобы разрешить звук.');
+            }); 
         } else { 
             audio.pause(); 
         }

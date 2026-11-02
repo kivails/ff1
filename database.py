@@ -1,4 +1,5 @@
 import aiosqlite
+from contextlib import asynccontextmanager
 
 DB = "forum.db"
 
@@ -64,8 +65,8 @@ CREATE TABLE IF NOT EXISTS reports (
 CREATE TABLE IF NOT EXISTS notifications (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id       INTEGER NOT NULL,
-    type          TEXT NOT NULL,   -- 'reply' | 'mention' | 'vote'
-    payload       TEXT NOT NULL,   -- JSON
+    type          TEXT NOT NULL,
+    payload       TEXT NOT NULL,
     is_read       INTEGER DEFAULT 0,
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -81,7 +82,6 @@ CREATE TABLE IF NOT EXISTS tags (
     posts_count   INTEGER DEFAULT 0
 );
 
--- индексы для нагрузки
 CREATE INDEX IF NOT EXISTS idx_posts_created ON posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_score   ON posts(score DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_tag     ON posts(tag);
@@ -92,7 +92,6 @@ CREATE INDEX IF NOT EXISTS idx_votes_target  ON votes(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_notif_user    ON notifications(user_id, is_read);
 CREATE INDEX IF NOT EXISTS idx_reports_open  ON reports(resolved);
 
--- полнотекстовый поиск
 CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(
     title, body, content='posts', content_rowid='id'
 );
@@ -115,7 +114,12 @@ async def init_db():
         await db.executescript(SCHEMA)
         await db.commit()
 
+# ИСПРАВЛЕНИЕ ОШИБКИ ПОТОКОВ: используем асинхронный контекстный менеджер
+@asynccontextmanager
 async def get_db():
     db = await aiosqlite.connect(DB)
     db.row_factory = aiosqlite.Row
-    return db
+    try:
+        yield db
+    finally:
+        await db.close()

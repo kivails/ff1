@@ -5,14 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Anime Forum</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- ПРАВИЛЬНОЕ ПОДКЛЮЧЕНИЕ REACT -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<!-- Шрифт с поддержкой кириллицы -->
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-  /* --- АНИМЕ СТИЛИСТИКА --- */
   :root {
     --bg-dark: #0f0c29;
     --bg-mid: #302b63;
@@ -21,7 +18,7 @@
     --glass-border: rgba(255, 255, 255, 0.1);
     --text: #ffffff;
     --text-muted: #a0a0a0;
-    --accent: #ff007f; /* Неоновый розовый */
+    --accent: #ff007f;
     --accent-glow: rgba(255, 0, 127, 0.6);
     --cyan: #00f0ff;
     --cyan-glow: rgba(0, 240, 255, 0.6);
@@ -30,7 +27,7 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Montserrat', sans-serif; }
   
   body {
-    margin: 0; padding: 16px; padding-bottom: 100px;
+    margin: 0; padding: 16px; padding-bottom: 120px; /* Отступ для кнопок */
     background: linear-gradient(135deg, var(--bg-dark), var(--bg-mid), var(--bg-light));
     background-size: 400% 400%;
     animation: gradientBG 15s ease infinite;
@@ -44,7 +41,6 @@
     100% { background-position: 0% 50%; }
   }
 
-  /* Стеклянные карточки */
   .card {
     background: var(--glass);
     backdrop-filter: blur(16px);
@@ -54,7 +50,7 @@
     padding: 16px;
     margin-bottom: 16px;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease;
   }
   .card:active { transform: scale(0.98); }
 
@@ -62,98 +58,67 @@
   .between { justify-content: space-between; }
   .hint { color: var(--text-muted); font-size: 12px; font-weight: 600; }
   
-  .title { 
-    font-weight: 800; font-size: 18px; margin: 10px 0; 
-    color: #fff; letter-spacing: 0.5px;
-  }
+  .title { font-weight: 800; font-size: 18px; margin: 10px 0; color: #fff; letter-spacing: 0.5px; }
   .body { white-space: pre-wrap; line-height: 1.6; word-break: break-word; font-size: 14px; }
 
-  /* Кнопки */
   button {
     background: linear-gradient(90deg, var(--accent), #ff4b4b);
-    color: #fff;
-    border: none; border-radius: 12px; padding: 12px 20px;
-    font-size: 14px; font-weight: 800; cursor: pointer;
-    transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px;
-    box-shadow: 0 4px 15px var(--accent-glow);
+    color: #fff; border: none; border-radius: 12px; padding: 12px 20px;
+    font-size: 14px; font-weight: 800; cursor: pointer; transition: all 0.3s;
+    text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 15px var(--accent-glow);
   }
   button:active { transform: scale(0.95); box-shadow: 0 2px 5px var(--accent-glow); }
   
-  button.ghost {
-    background: transparent; color: var(--cyan); box-shadow: none;
-    border: 1px solid var(--cyan); padding: 6px 12px;
-  }
+  button.ghost { background: transparent; color: var(--cyan); box-shadow: none; border: 1px solid var(--cyan); padding: 6px 12px; }
   button.ghost:active { background: rgba(0, 240, 255, 0.1); }
 
-  /* Поля ввода */
   input, textarea {
-    width: 100%; padding: 14px; border-radius: 12px;
-    border: 1px solid var(--glass-border);
-    background: rgba(0,0,0,0.4); color: var(--cyan);
-    font-size: 14px; margin-bottom: 12px;
-    outline: none; transition: border 0.3s, box-shadow 0.3s;
+    width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--glass-border);
+    background: rgba(0,0,0,0.4); color: var(--cyan); font-size: 14px; margin-bottom: 12px; outline: none; transition: 0.3s;
   }
   input:focus, textarea:focus { border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan-glow); }
   input::placeholder, textarea::placeholder { color: #666; }
 
-  /* Голосование */
   .votes { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 40px; }
   .votes .score { font-weight: 800; font-size: 16px; color: var(--cyan); text-shadow: 0 0 8px var(--cyan-glow); }
   .votes button { background: transparent; color: var(--text-muted); padding: 0; font-size: 22px; line-height: 1; box-shadow: none; }
-  .votes button.active { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
 
-  /* Теги и Комментарии */
   .comment { padding-left: 14px; border-left: 2px solid var(--accent); margin-left: 14px; margin-top: 12px; background: rgba(0,0,0,0.2); border-radius: 0 8px 8px 0; padding: 8px; }
   .tag { display: inline-block; background: rgba(255, 0, 127, 0.15); color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 
-  /* Табы */
   .tabs { display: flex; gap: 8px; margin-bottom: 20px; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 14px; }
   .tabs button { flex: 1; background: transparent; color: var(--text-muted); box-shadow: none; padding: 10px; font-size: 13px; }
   .tabs button.active { background: var(--glass); color: var(--cyan); text-shadow: 0 0 8px var(--cyan-glow); box-shadow: none; border: 1px solid var(--glass-border); }
 
-  /* Кнопки внизу */
+  /* Кнопки внизу (подняты выше) */
   .fab {
-    position: fixed; right: 20px; bottom: 20px; width: 64px; height: 64px;
+    position: fixed; right: 20px; bottom: 30px; width: 64px; height: 64px;
     border-radius: 50%; font-size: 32px; padding: 0; z-index: 10;
     display: flex; align-items: center; justify-content: center;
     background: linear-gradient(135deg, var(--cyan), #0055ff);
     box-shadow: 0 0 20px var(--cyan-glow);
   }
   .fab-profile {
-    position: fixed; left: 20px; bottom: 20px; width: 64px; height: 64px;
+    position: fixed; left: 20px; bottom: 30px; width: 64px; height: 64px;
     border-radius: 50%; font-size: 24px; padding: 0; z-index: 10;
     display: flex; align-items: center; justify-content: center;
     background: rgba(0,0,0,0.6); border: 1px solid var(--accent); color: var(--accent);
     backdrop-filter: blur(10px); box-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
   }
 
-  .hidden { display: none !important; }
   .loading { text-align: center; color: var(--cyan); margin-top: 60px; font-size: 16px; font-weight: 800; animation: pulse 1.5s infinite; }
   @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; text-shadow: 0 0 15px var(--cyan); } 100% { opacity: 0.4; } }
-  .error-box { background: rgba(255, 0, 0, 0.2); border: 1px solid #ff0000; color: #ffb3b3; padding: 16px; border-radius: 12px; margin: 20px 0; text-align: center; font-weight: 600; }
+  .error-box { background: rgba(255, 0, 0, 0.2); border: 1px solid #ff0000; color: #ffb3b3; padding: 16px; border-radius: 12px; margin: 20px 0; text-align: center; font-weight: 600; word-break: break-all;}
 </style>
 </head>
 <body>
-<div id="root">
-  <!-- Показываем загрузку, пока React не запустится -->
-  <div class="loading" id="initial-loader">Инициализация магии... ⛩️</div>
-</div>
+<div id="root"><div class="loading" id="initial-loader">Инициализация... ⛩️</div></div>
 
 <script>
-  // Проверка на ошибки JS, чтобы не было черного экрана
-  window.onerror = function(msg, url, line) {
-    document.getElementById('root').innerHTML = `<div class="error-box">Ошибка JS: ${msg}<br>Строка: ${line}</div>`;
-  };
-
   const tg = window.Telegram.WebApp;
   tg.ready(); tg.expand();
-
-  // Твой API токен
   const INIT = tg.initData;
-  if (!INIT) {
-    document.getElementById('root').innerHTML = '<div class="error-box">Ошибка: Нет данных от Telegram!<br>Открой приложение через кнопку в боте.</div>';
-    throw new Error("No initData");
-  }
+  if (!INIT) document.getElementById('root').innerHTML = '<div class="error-box">Ошибка: Нет данных от Telegram! Открой через бота.</div>';
 
   const { useState, useEffect, createElement: e } = React;
 
@@ -164,12 +129,13 @@
     });
     if (!r.ok) {
       const txt = await r.text();
-      throw new Error(`Сервер ответил: ${r.status} (${txt})`);
+      // Пытаемся вытащить "detail" из ответа FastAPI
+      try { const j = JSON.parse(txt); throw new Error(j.detail || txt); } 
+      catch(err) { throw new Error(txt); }
     }
     return r.json();
   }
 
-  // --- Компоненты ---
   function PostList({ onOpen, setView }) {
     const [posts, setPosts] = useState(null);
     const [error, setError] = useState(null);
@@ -177,12 +143,10 @@
 
     useEffect(() => {
       setPosts(null); setError(null);
-      api(`/api/posts?sort=${sort}&page=1`)
-        .then(d => setPosts(d.posts))
-        .catch(e => setError(e.message));
+      api(`/api/posts?sort=${sort}&page=1`).then(d => setPosts(d.posts)).catch(e => setError(e.message));
     }, [sort]);
 
-    if (error) return e('div', {className:'error-box'}, 'Ошибка: ', error);
+    if (error) return e('div', {className:'error-box'}, 'ОШИБКА СЕРВЕРА: ', error);
     if (!posts) return e('div', {className:'loading'}, 'Собираем посты... ⛩️');
 
     return e('div', null,
@@ -195,10 +159,7 @@
       ),
       posts.length === 0 ? e('p', {className:'hint', style:{textAlign:'center', marginTop: 40}}, 'Пока пусто. Создай первый пост!') :
       posts.map(p => e('div', { key: p.id, className: 'card', onClick: () => onOpen(p.id) },
-        e('div', { className: 'row', style: {marginBottom: 8} },
-          e('span', { className: 'tag' }, p.tag),
-          e('span', { className: 'hint' }, `@${p.username || p.first_name || 'anon'}`)
-        ),
+        e('div', { className: 'row', style: {marginBottom: 8} }, e('span', { className: 'tag' }, p.tag), e('span', { className: 'hint' }, `@${p.username || p.first_name || 'anon'}`)),
         e('div', { className: 'title' }, p.title),
         e('div', { className: 'hint' }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`)
       ))
@@ -209,32 +170,22 @@
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
     const [text, setText] = useState('');
-
-    const load = () => {
-      api('/api/posts/' + id).then(setData).catch(e => setError(e.message));
-    };
+    const load = () => api('/api/posts/' + id).then(setData).catch(e => setError(e.message));
     useEffect(load, [id]);
 
     if (error) return e('div', {className:'error-box'}, 'Ошибка: ', error);
-    if (!data) return e('div', {className:'loading'}, 'Загрузка поста... ⛩️');
+    if (!data) return e('div', {className:'loading'}, 'Загрузка... ⛩️');
 
     const { post, comments } = data;
-
     const submitComment = async () => {
       if (!text.trim()) return;
-      try {
-        await api('/api/comments', { method:'POST', body: JSON.stringify({ post_id: id, parent_id: null, body: text }) });
-        setText(''); load();
-      } catch(e) { alert(e.message); }
+      try { await api('/api/comments', { method:'POST', body: JSON.stringify({ post_id: id, parent_id: null, body: text }) }); setText(''); load(); } catch(e) { alert(e.message); }
     };
 
     return e('div', null,
       e('button', { className: 'ghost', onClick: onBack, style: {marginBottom: 16} }, '← Назад'),
       e('div', { className: 'card' },
-        e('div', { className: 'row between' },
-          e('span', { className: 'tag' }, post.tag),
-          e('span', { className: 'hint' }, `⭐ ${post.author_karma}`)
-        ),
+        e('div', { className: 'row between' }, e('span', { className: 'tag' }, post.tag), e('span', { className: 'hint' }, `⭐ ${post.author_karma}`)),
         e('h2', { className: 'title' }, post.title),
         e('div', { className: 'body' }, post.body),
         e('div', { className: 'row between', style: {marginTop: 16} },
@@ -247,7 +198,7 @@
         )
       ),
       e('h3', { style: {color: 'var(--cyan)'} }, '💬 Комментарии'),
-      e('textarea', { rows: 3, placeholder: 'Написать комментарий...', value: text, onChange: ev => setText(ev.target.value) }),
+      e('textarea', { rows: 3, placeholder: 'Написать...', value: text, onChange: ev => setText(ev.target.value) }),
       e('button', { onClick: submitComment, style: {marginBottom: 16, width: '100%'} }, 'Отправить'),
       comments.map(c => e('div', { key: c.id, className: 'comment' },
         e('div', { className: 'hint' }, `@${c.username || c.first_name} (⭐${c.author_karma})`),
@@ -260,41 +211,53 @@
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
     const [tag, setTag] = useState('general');
-
     const submit = async () => {
       if (!title.trim()) return alert('Введи заголовок');
-      try {
-        const r = await api('/api/posts', { method:'POST', body: JSON.stringify({ title, body, tag }) });
-        onCreated(r.id);
-      } catch(ev) { alert(ev.message); }
+      try { const r = await api('/api/posts', { method:'POST', body: JSON.stringify({ title, body, tag }) }); onCreated(r.id); } catch(ev) { alert(ev.message); }
     };
-
     return e('div', null,
       e('button', { className: 'ghost', onClick: onBack, style: {marginBottom: 16} }, '← Отмена'),
       e('h2', { style: {color: '#fff'} }, 'Создать пост'),
       e('input', { placeholder: 'Заголовок', value: title, onChange: ev => setTitle(ev.target.value) }),
-      e('input', { placeholder: 'Тег (anime, news...)', value: tag, onChange: ev => setTag(ev.target.value) }),
-      e('textarea', { rows: 6, placeholder: 'Текст поста...', value: body, onChange: ev => setBody(ev.target.value) }),
+      e('input', { placeholder: 'Тег', value: tag, onChange: ev => setTag(ev.target.value) }),
+      e('textarea', { rows: 6, placeholder: 'Текст...', value: body, onChange: ev => setBody(ev.target.value) }),
       e('button', { onClick: submit, style: {width:'100%'} }, 'Опубликовать ⛩️')
+    );
+  }
+
+  function Profile({ onBack }) {
+    const [profile, setProfile] = useState(null);
+    useEffect(() => {
+      const me = tg.initDataUnsafe?.user;
+      if(me) api('/api/users/' + me.id).then(setProfile).catch(console.error);
+    }, []);
+    return e('div', null,
+      e('button', { className: 'ghost', onClick: onBack, style: {marginBottom: 16} }, '← Назад'),
+      e('div', { className: 'card' },
+        e('h2', {style:{margin:0, color:'var(--accent)'}}, 'Мой профиль'),
+        profile ? e('div', {style:{marginTop:16}},
+          e('p', null, 'Имя: ', e('b', null, profile.first_name)),
+          e('p', null, 'Карма: ⭐ ', e('b', null, profile.karma)),
+          e('p', null, 'Постов: ', e('b', null, profile.posts_count))
+        ) : e('p', {className:'loading'}, 'Загрузка...')
+      )
     );
   }
 
   function App() {
     const [route, setRoute] = useState({ view: 'list' });
-
     if (route.view === 'post') return e(PostView, { id: route.id, onBack: () => setRoute({view: 'list'}) });
     if (route.view === 'compose') return e(Compose, { onBack: () => setRoute({view:'list'}), onCreated: id => setRoute({view:'post', id}) });
-
+    if (route.view === 'profile') return e(Profile, { onBack: () => setRoute({view: 'list'}) });
+    
     return e('div', null,
       e(PostList, { onOpen: id => setRoute({view:'post', id}), setView: v => setRoute({view: v}) }),
       e('button', { className: 'fab', onClick: () => setRoute({view:'compose'}) }, '+'),
-      e('button', { className: 'fab-profile', onClick: () => alert('Профиль скоро появится!') }, '👤')
+      e('button', { className: 'fab-profile', onClick: () => setRoute({view: 'profile'}) }, '👤')
     );
   }
 
-  // Запуск React
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(e(App));
+  ReactDOM.createRoot(document.getElementById('root')).render(e(App));
 </script>
 </body>
 </html>

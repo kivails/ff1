@@ -1,7 +1,7 @@
 import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import WebAppInfo, MenuButtonCommands
+from aiogram.types import WebAppInfo, MenuButtonCommands, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import aiosqlite
 from database import DB

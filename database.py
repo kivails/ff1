@@ -55,6 +55,5 @@ async def init_db():
     async with aiosqlite.connect(DB) as db:
         await db.executescript(SCHEMA)
         await db.execute("INSERT OR IGNORE INTO tags(name) VALUES ('general'), ('anime'), ('news')")
-        # Прямая ссылка на радио (работает)
-        await db.execute("INSERT OR IGNORE INTO settings(key, value) VALUES ('music_url', 'https://stream.zeno.fm/0r0xa792kwzuv')")
+        await db.execute("INSERT OR IGNORE INTO settings(key, value) VALUES ('playlist', '[]')")
         await db.commit()

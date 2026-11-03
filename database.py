@@ -1,4 +1,4 @@
-iimport aiosqlite
+import aiosqlite
 
 DB = "rareads.db"
 

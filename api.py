@@ -21,16 +21,6 @@ async def ensure_user(user):
                          (user.get("id"), user.get("username"), user.get("first_name")))
         await db.commit()
 
-async def check_achievements(user_id):
-    async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT COUNT(*) FROM posts WHERE author_id=?", (user_id,))
-        if (await cur.fetchone())[0] >= 1:
-            await db.execute("INSERT OR IGNORE INTO achievements VALUES (?, 'first_post')", (user_id,))
-        cur = await db.execute("SELECT SUM(score) FROM posts WHERE author_id=?", (user_id,))
-        if ((await cur.fetchone())[0] or 0) >= 100:
-            await db.execute("INSERT OR IGNORE INTO achievements VALUES (?, 'karma_100')", (user_id,))
-        await db.commit()
-
 class PostIn(BaseModel):
     title: str; body: str; tags: str = "general"; image_file_id: str | None = None
 class CommentIn(BaseModel):
@@ -46,6 +36,18 @@ class GiftIn(BaseModel):
 
 @app.get("/ping")
 async def ping(): return {"status": "alive"}
+
+@app.get("/api/stats")
+async def admin_stats(user=Depends(current_user)):
+    if user.get("id") not in ADMIN_IDS: raise HTTPException(403)
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT COUNT(*) FROM users")
+        users = (await cur.fetchone())[0]
+        cur = await db.execute("SELECT COUNT(*) FROM posts")
+        posts = (await cur.fetchone())[0]
+        cur = await db.execute("SELECT COUNT(*) FROM comments")
+        comments = (await cur.fetchone())[0]
+    return {"users": users, "posts": posts, "comments": comments}
 
 @app.get("/api/posts")
 async def list_posts(sort: str = "new", q: str | None = None, user=Depends(current_user)):
@@ -66,6 +68,9 @@ async def list_posts(sort: str = "new", q: str | None = None, user=Depends(curre
         for p in posts:
             cur = await db.execute("SELECT emoji, COUNT(*) as c FROM reactions WHERE target_type='post' AND target_id=? GROUP BY emoji", (p["id"],))
             p["reactions"] = {r["emoji"]: r["c"] for r in await cur.fetchall()}
+            cur = await db.execute("SELECT value FROM votes WHERE user_id=? AND target_type='post' AND target_id=?", (user.get("id"), p["id"]))
+            v = await cur.fetchone()
+            p["my_vote"] = v[0] if v else 0
     return {"posts": posts}
 
 @app.post("/api/posts")
@@ -79,16 +84,6 @@ async def create_post(data: PostIn, user=Depends(current_user)):
         post_id = cur.lastrowid
         await db.execute("UPDATE users SET crystals = crystals + 10 WHERE id=?", (user.get("id"),))
         await db.commit()
-    await check_achievements(user.get("id"))
-    if status == 'pending':
-        for admin in ADMIN_IDS:
-            kb = {"inline_keyboard": [[{"text": "✅ Одобрить", "callback_data": f"mod_ok_{post_id}"},{"text": "❌ Отклонить", "callback_data": f"mod_no_{post_id}"}]]}
-            caption = f"🛡️ <b>Пост на модерацию!</b>\nОт: {user.get('first_name')}\n\n<b>{data.title}</b>\n{data.body[:200]}...\n\nТеги: {tags_str}"
-            async with httpx.AsyncClient() as client:
-                if data.image_file_id:
-                    await client.post(f"{TG_API}/sendPhoto", data={"chat_id": admin, "photo": data.image_file_id, "caption": caption, "parse_mode": "HTML", "reply_markup": json.dumps(kb)})
-                else:
-                    await client.post(f"{TG_API}/sendMessage", data={"chat_id": admin, "text": caption, "parse_mode": "HTML", "reply_markup": json.dumps(kb)})
     return {"id": post_id, "status": status}
 
 @app.delete("/api/posts/{post_id}")
@@ -125,6 +120,10 @@ async def get_post(post_id: int, user=Depends(current_user)):
 async def create_comment(data: CommentIn, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT created_at FROM comments WHERE author_id=? ORDER BY id DESC LIMIT 1", (user.get("id"),))
+        last = await cur.fetchone()
+        if last and (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(last[0])).total_seconds() < 30:
+            raise HTTPException(400, "КД 30 секунд!")
         cur = await db.execute("INSERT INTO comments(post_id,parent_id,author_id,body) VALUES (?,?,?,?)", (data.post_id, data.parent_id, user.get("id"), data.body))
         await db.commit()
     return {"id": cur.lastrowid}
@@ -168,6 +167,18 @@ async def buy_frame(frame: str, user=Depends(current_user)):
         cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
         if (await cur.fetchone())[0] < costs[frame]: raise HTTPException(400, "Мало кристаллов!")
         await db.execute("UPDATE users SET crystals = crystals - ?, frame = ? WHERE id=?", (costs[frame], frame, user.get("id")))
+        await db.commit()
+    return {"ok": True}
+
+@app.post("/api/buy_gift")
+async def buy_gift(data: GiftIn, user=Depends(current_user)):
+    costs = {"heart": 10, "star": 30, "crown": 100}
+    if data.gift not in costs: raise HTTPException(400)
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
+        if (await cur.fetchone())[0] < costs[data.gift]: raise HTTPException(400, "Мало кристаллов!")
+        await db.execute("UPDATE users SET crystals = crystals - ? WHERE id=?", (costs[data.gift], user.get("id")))
+        await db.execute("INSERT INTO gifts(from_id, to_id, gift_name) VALUES (?, ?, ?)", (user.get("id"), data.to_id, data.gift))
         await db.commit()
     return {"ok": True}
 
@@ -236,13 +247,6 @@ async def get_music():
         path = r.json()["result"]["file_path"]
         file_resp = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}", timeout=60)
     return StreamingResponse(iter([file_resp.content]), media_type="audio/mpeg")
-
-@app.get("/api/settings")
-async def get_settings():
-    async with aiosqlite.connect(DB) as db:
-        db.row_factory = aiosqlite.Row
-        cur = await db.execute("SELECT key, value FROM settings")
-        return {r["key"]: r["value"] for r in await cur.fetchall()}
 
 @app.on_event("startup")
 async def _startup(): await init_db()

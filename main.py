@@ -1,4 +1,6 @@
-import asyncio, os, uvicorn
+import asyncio
+import os
+import uvicorn
 from bot import dp, bot, set_commands, start_keep_alive
 from database import init_db
 

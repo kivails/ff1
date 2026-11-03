@@ -9,7 +9,7 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Pacifico&display=swap" rel="stylesheet">
 <style>
-  /* ОБОИ МЕНЯЮТСЯ В ЗАВИСИМОСТИ ОТ ТЕМЫ */
+  /* ОБОИ ДЛЯ КАЖДОЙ ТЕМЫ (РАЗНЫЕ АНИМЕ-КАРТИНКИ) */
   :root { --bg-img: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop'); --text: #f0f0f0; --accent: #ffb7c5; --glass: rgba(20, 20, 30, 0.7); --border: rgba(255,255,255,0.1); }
   .theme-sakura { --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000'); --text: #fff0f5; --accent: #ff8da1; --glass: rgba(45, 27, 46, 0.7); }
   .theme-sunset { --bg-img: url('https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000'); --text: #ffebd6; --accent: #ff9a76; --glass: rgba(50, 20, 10, 0.7); }
@@ -25,21 +25,23 @@
   .row { display: flex; align-items: center; gap: 12px; } .between { justify-content: space-between; }
   .hint { color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 700; } 
   .title { font-weight: 800; font-size: 20px; margin: 10px 0; }
-  button { background: var(--accent); color: #111; border: none; border-radius: 12px; padding: 12px 20px; font-weight: 800; font-size: 15px; cursor: pointer; transition: all 0.2s; }
-  button.ghost { background: rgba(0,0,0,0.3); color: var(--accent); border: 1px solid var(--accent); }
+  button { background: var(--accent); color: #111; border: none; border-radius: 12px; padding: 12px 20px; font-weight: 800; font-size: 15px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px var(--accent-glow); }
+  button:active { transform: scale(0.92); }
+  button.ghost { background: rgba(0,0,0,0.3); color: var(--accent); border: 1px solid var(--accent); box-shadow: none; }
   input, textarea { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(0,0,0,0.4); color: var(--text); font-size: 15px; margin-bottom: 12px; outline: none; }
-  input:focus, textarea:focus { border-color: var(--accent); }
+  input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
   .tag { display: inline-block; background: rgba(0,0,0,0.3); border: 1px solid var(--accent); border-radius: 10px; padding: 4px 10px; font-size: 12px; font-weight: 800; color: var(--accent); }
-  .fab { position: fixed; right: 20px; bottom: 30px; width: 64px; height: 64px; border-radius: 50%; font-size: 32px; z-index: 10; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #111; }
+  .fab { position: fixed; right: 20px; bottom: 30px; width: 64px; height: 64px; border-radius: 50%; font-size: 32px; z-index: 10; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #111; box-shadow: 0 0 20px var(--accent-glow); }
   .fab-profile { position: fixed; left: 20px; bottom: 30px; width: 64px; height: 64px; border-radius: 50%; font-size: 24px; z-index: 10; display: flex; align-items: center; justify-content: center; background: var(--glass); border: 2px solid var(--accent); color: var(--accent); backdrop-filter: blur(10px); }
-  .reaction-btn { background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 20px; padding: 6px 10px; font-size: 16px; cursor: pointer; color: var(--text); }
+  .reaction-btn { background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 20px; padding: 6px 10px; font-size: 16px; cursor: pointer; color: var(--text); box-shadow: none; transition: 0.2s; }
   .reaction-btn.active { background: var(--accent); color: #111; border-color: var(--accent); }
   .frame-gold { border: 4px solid #ffd700; box-shadow: 0 0 15px #ffd700; }
   .frame-fire { border: 4px solid #ff4500; box-shadow: 0 0 15px #ff4500; }
   .frame-sakura { border: 4px solid #ffb7c5; box-shadow: 0 0 15px #ffb7c5; }
   .level-bar { width: 100%; height: 10px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; margin-top: 8px; }
-  .level-fill { height: 100%; background: var(--accent); width: 0%; }
-  .loading { text-align: center; color: var(--accent); margin-top: 60px; font-size: 20px; font-weight: 800; }
+  .level-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s; }
+  .loading { text-align: center; color: var(--accent); margin-top: 60px; font-size: 20px; font-weight: 800; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 50% { opacity: 0.5; } }
 </style>
 </head>
 <body>
@@ -57,9 +59,14 @@
     return r.json();
   }
 
+  // --- КОММЕНТАРИИ ---
   function CommentItem({ c, onProfile, postAuthorId, onReply }) {
     const react = async (emoji) => { await api('/api/react', { method:'POST', body: JSON.stringify({ target_type: 'comment', target_id: c.id, emoji }) }); };
     const vote = async (val) => { await api('/api/vote', { method:'POST', body: JSON.stringify({ target_type: 'comment', target_id: c.id, value: val }) }); };
+    
+    // Парсим стикеры
+    const bodyHtml = c.body.replace(/\[sticker\](.*?)\[\/sticker\]/g, (match, fid) => `<br><img src="/api/sticker/${fid}" style="width:100px;height:100px;border-radius:12px;margin-top:8px;">`);
+
     return e('div', { className: 'card', style: {padding: 12, marginBottom: 8, marginLeft: c.parent_id ? 20 : 0} }, 
         e('div', { className: 'row between' }, 
           e('span', { className: 'hint', onClick: () => onProfile(c.author_id) }, `${c.badge || ''} @${c.custom_nick || c.username} ${c.author_id === postAuthorId ? '👑 (Автор)' : ''}`),
@@ -69,7 +76,7 @@
             e('button', { className: 'ghost', style: {padding: '2px 6px', fontSize: 10}, onClick: () => vote(-1) }, '▼')
           )
         ), 
-        e('div', {style: {marginTop: 4, fontSize: 14}}, c.body),
+        e('div', {style: {marginTop: 4, fontSize: 14}, dangerouslySetInnerHTML: {__html: bodyHtml}}),
         e('div', {style: {marginTop: 8, display: 'flex', gap: 6, alignItems: 'center'}}, 
             ['💖', '😂', '🔥'].map(r => e('button', {key: r, className: 'reaction-btn', onClick: () => react(r), style: {padding: '2px 6px', fontSize: 12}}, r)),
             e('button', {className: 'ghost', onClick: () => onReply(c.id), style: {padding: '2px 6px', fontSize: 10}}, 'Ответить')
@@ -77,18 +84,26 @@
     );
   }
 
+  // --- ПРОСМОТР ПОСТА ---
   function PostView({ id, onBack, onProfile, theme }) {
-    const [data, setData] = useState(null); const [text, setText] = useState(''); const [replyTo, setReplyTo] = useState(null);
+    const [data, setData] = useState(null); const [text, setText] = useState(''); const [replyTo, setReplyTo] = useState(null); const [fileId, setFileId] = useState(null);
     const load = () => api('/api/posts/' + id).then(setData);
     useEffect(() => { load(); }, [id]);
     if (!data) return e('div', {className:'loading'}, 'Читаем...');
     const { post, comments } = data;
     
+    const uploadFile = async (e) => {
+        const f = e.target.files[0]; if(!f) return;
+        const fd = new FormData(); fd.append('file', f);
+        const res = await fetch('/api/upload', { method:'POST', headers: {'X-Init-Data': INIT}, body: fd }).then(r => r.json());
+        setFileId(res.file_id);
+    };
+
     const submit = async () => { 
-        if(!text.trim()) return; 
+        if(!text.trim() && !fileId) return; 
         try { 
-            await api('/api/comments', { method:'POST', body: JSON.stringify({ post_id: id, parent_id: replyTo, body: text }) }); 
-            setText(''); setReplyTo(null); load(); 
+            await api('/api/comments', { method:'POST', body: JSON.stringify({ post_id: id, parent_id: replyTo, body: text, file_id: fileId }) }); 
+            setText(''); setFileId(null); setReplyTo(null); load(); 
         } catch(e) { alert(e.message); } 
     };
     
@@ -116,12 +131,19 @@
       ),
       e('h3', { style: {color: 'var(--accent)'} }, '💬 Комментарии'),
       replyTo && e('div', {className: 'hint', onClick: () => setReplyTo(null), style:{marginBottom:8, cursor:'pointer'}}, 'Ответ на #' + replyTo + ' ✕'),
+      
       e('textarea', { rows: 2, placeholder: 'Написать...', value: text, onChange: ev => setText(ev.target.value) }),
+      e('div', {style: {display:'flex', gap: 10, marginBottom: 12, alignItems:'center'}},
+        e('input', { type: 'file', accept: 'image/*,image/gif', onChange: uploadFile, style:{color:'#fff', flex:1} }),
+        fileId && e('span', {className:'hint'}, '✓ Файл готов')
+      ),
+      
       e('button', { onClick: submit, style: {marginBottom: 20, width: '100%'} }, 'Отправить'),
       comments.map(c => e(CommentItem, { key: c.id, c, onProfile, postAuthorId: post.author_id, onReply: setReplyTo }))
     );
   }
 
+  // --- ПРОФИЛЬ ---
   function Profile({ userId, onBack, theme, setTheme }) {
     const [profile, setProfile] = useState(null); const [editMode, setEditMode] = useState(false);
     const [nick, setNick] = useState(''); const [bio, setBio] = useState('');
@@ -204,6 +226,7 @@
     );
   }
 
+  // --- НАСТРОЙКИ ---
   function Settings({ onBack, setTheme, currentTheme, music, setMusic }) {
     return e('div', {className: `theme-${currentTheme}`},
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
@@ -222,6 +245,7 @@
     );
   }
 
+  // --- СОЗДАНИЕ ПОСТА ---
   function Compose({ onBack, onCreated, theme }) {
     const [title, setTitle] = useState(''); const [body, setBody] = useState(''); const [tags, setTags] = useState('general'); const [file, setFile] = useState(null); const [loading, setLoading] = useState(false);
     const submit = async () => {
@@ -244,6 +268,7 @@
     );
   }
 
+  // --- ГЛАВНОЕ ПРИЛОЖЕНИЕ ---
   function App() {
     const [route, setRoute] = useState({ view: 'list' });
     const [theme, setThemeState] = useState(localStorage.getItem('theme') || 'default');
@@ -275,7 +300,7 @@
     if (route.view === 'settings') return e(Settings, { onBack: () => setRoute({view:'list'}), setTheme, currentTheme: theme, music, setMusic });
 
     return e('div', { className: `theme-${theme}` },
-      e('div', { className: 'row between', style: {marginBottom: 20} }, e('h1', { style: {margin: 0, color: '#fff', fontSize: 32} }, '⛩️ RaReads'), e('button', { className: 'ghost', onClick: () => setRoute({view:'settings'}) }, '⚙️')),
+      e('div', { className: 'row between', style: {marginBottom: 20} }, e('h1', { style: {margin: 0, color: '#fff', fontSize: 32, textShadow: '0 2px 10px rgba(0,0,0,0.5)'} }, '⛩️ RaReads'), e('button', { className: 'ghost', onClick: () => setRoute({view:'settings'}) }, '⚙️')),
       
       e('input', { placeholder: '🔍 Поиск по тегу...', value: search, onChange: ev => setSearch(ev.target.value) }),
       

@@ -32,6 +32,7 @@ class ProfileUpdate(BaseModel):
     custom_nick: str | None = None
     bio: str | None = None
     theme: str | None = None
+    banner: str | None = None
 class GiftIn(BaseModel):
     to_id: int
     gift: str
@@ -39,7 +40,6 @@ class GiftIn(BaseModel):
 @app.get("/ping")
 async def ping(): return {"status": "alive"}
 
-# --- МУЗЫКА ---
 @app.get("/api/playlist")
 async def get_playlist():
     async with aiosqlite.connect(DB) as db:
@@ -62,7 +62,6 @@ async def get_music(index: int):
         file_resp = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}", timeout=60)
     return StreamingResponse(iter([file_resp.content]), media_type="audio/mpeg")
 
-# --- ПОСТЫ ---
 @app.get("/api/posts")
 async def list_posts(sort: str = "new", q: str | None = None, user=Depends(current_user)):
     await ensure_user(user)
@@ -138,6 +137,11 @@ async def create_comment(data: CommentIn, user=Depends(current_user)):
         body = data.body + (f"\n[sticker]{data.file_id}[/sticker]" if data.file_id else "")
         cur = await db.execute("INSERT INTO comments(post_id,parent_id,author_id,body) VALUES (?,?,?,?)", (data.post_id, data.parent_id, user.get("id"), body))
         await db.commit()
+        cur = await db.execute("SELECT author_id, title FROM posts WHERE id=?", (data.post_id,))
+        post_author = await cur.fetchone()
+        if post_author and post_author[0] != user.get("id"):
+            msg = f"💬 <b>Новый комментарий!</b>\nК посту: {post_author[1]}\n\nОт: {user.get('first_name')}\n{data.body[:100]}..."
+            async with httpx.AsyncClient() as client: await client.post(f"{TG_API}/sendMessage", json={"chat_id": post_author[0], "text": msg, "parse_mode": "HTML"})
     return {"id": cur.lastrowid}
 
 @app.post("/api/vote")
@@ -167,7 +171,6 @@ async def react(data: ReactionIn, user=Depends(current_user)):
         await db.commit()
     return {"ok": True}
 
-# --- ПРОФИЛЬ ---
 @app.get("/api/profile/{user_id}")
 async def get_profile(user_id: int, user=Depends(current_user)):
     async with aiosqlite.connect(DB) as db:
@@ -183,20 +186,24 @@ async def get_profile(user_id: int, user=Depends(current_user)):
         top = await cur.fetchone()
         cur = await db.execute("SELECT ach_name FROM achievements WHERE user_id=?", (user_id,))
         achs = [r["ach_name"] for r in await cur.fetchall()]
-    return {**dict(u), "karma": p + c, "level": (p + c) // 10, "top_post": dict(top) if top else None, "achievements": achs}
+        cur = await db.execute("""SELECT g.gift_name, u.custom_nick, u.first_name FROM gifts g JOIN users u ON u.id=g.from_id WHERE g.to_id=?""", (user_id,))
+        gifts = [{"name": r["gift_name"], "from": r["custom_nick"] or r["first_name"]} for r in await cur.fetchall()]
+    return {**dict(u), "karma": p + c, "level": (p + c) // 10, "top_post": dict(top) if top else None, "achievements": achs, "gifts": gifts}
 
 @app.post("/api/profile")
 async def update_profile(data: ProfileUpdate, user=Depends(current_user)):
+    await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
         if data.custom_nick: await db.execute("UPDATE users SET custom_nick=? WHERE id=?", (data.custom_nick, user.get("id")))
         if data.bio is not None: await db.execute("UPDATE users SET bio=? WHERE id=?", (data.bio, user.get("id")))
         if data.theme: await db.execute("UPDATE users SET theme=? WHERE id=?", (data.theme, user.get("id")))
+        if data.banner: await db.execute("UPDATE users SET banner=? WHERE id=?", (data.banner, user.get("id")))
         await db.commit()
     return {"ok": True}
 
-# --- ПОКУПКИ ---
 @app.post("/api/buy_frame")
 async def buy_frame(frame: str, user=Depends(current_user)):
+    await ensure_user(user)
     costs = {"gold": 50, "fire": 100, "sakura": 150}
     if frame not in costs: raise HTTPException(400)
     async with aiosqlite.connect(DB) as db:
@@ -208,6 +215,7 @@ async def buy_frame(frame: str, user=Depends(current_user)):
 
 @app.post("/api/buy_gift")
 async def buy_gift(data: GiftIn, user=Depends(current_user)):
+    await ensure_user(user)
     costs = {"heart": 10, "star": 30, "crown": 100}
     if data.gift not in costs: raise HTTPException(400)
     async with aiosqlite.connect(DB) as db:
@@ -218,7 +226,6 @@ async def buy_gift(data: GiftIn, user=Depends(current_user)):
         await db.commit()
     return {"ok": True}
 
-# --- ФАЙЛЫ ---
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...), user=Depends(current_user)):
     content = await file.read()

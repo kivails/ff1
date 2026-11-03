@@ -28,6 +28,13 @@ class VoteIn(BaseModel):
     target_type: str; target_id: int; value: int
 class ReactionIn(BaseModel):
     target_type: str; target_id: int; emoji: str
+class ProfileUpdate(BaseModel):
+    custom_nick: str | None = None
+    bio: str | None = None
+    theme: str | None = None
+class GiftIn(BaseModel):
+    to_id: int
+    gift: str
 
 @app.get("/ping")
 async def ping(): return {"status": "alive"}
@@ -83,7 +90,6 @@ async def create_post(data: PostIn, user=Depends(current_user)):
         cur = await db.execute("INSERT INTO posts(author_id,title,body,tags,image_file_id,status) VALUES (?,?,?,?,?,?)", (user.get("id"), data.title, data.body, tags_str, data.image_file_id, status))
         post_id = cur.lastrowid
         await db.commit()
-
     if status == 'pending':
         for admin in ADMIN_IDS:
             kb = {"inline_keyboard": [[{"text": "✅ Одобрить", "callback_data": f"mod_ok_{post_id}"},{"text": "❌ Отклонить", "callback_data": f"mod_no_{post_id}"}]]}
@@ -91,7 +97,7 @@ async def create_post(data: PostIn, user=Depends(current_user)):
             async with httpx.AsyncClient() as client:
                 if data.image_file_id: await client.post(f"{TG_API}/sendPhoto", data={"chat_id": admin, "photo": data.image_file_id, "caption": caption, "parse_mode": "HTML", "reply_markup": json.dumps(kb)})
                 else: await client.post(f"{TG_API}/sendMessage", data={"chat_id": admin, "text": caption, "parse_mode": "HTML", "reply_markup": json.dumps(kb)})
-    return {"id": post_id}
+    return {"id": post_id, "status": status}
 
 @app.delete("/api/posts/{post_id}")
 async def delete_post(post_id: int, user=Depends(current_user)):
@@ -161,6 +167,7 @@ async def react(data: ReactionIn, user=Depends(current_user)):
         await db.commit()
     return {"ok": True}
 
+# --- ПРОФИЛЬ ---
 @app.get("/api/profile/{user_id}")
 async def get_profile(user_id: int, user=Depends(current_user)):
     async with aiosqlite.connect(DB) as db:
@@ -179,13 +186,39 @@ async def get_profile(user_id: int, user=Depends(current_user)):
     return {**dict(u), "karma": p + c, "level": (p + c) // 10, "top_post": dict(top) if top else None, "achievements": achs}
 
 @app.post("/api/profile")
-async def update_profile(data: dict, user=Depends(current_user)):
+async def update_profile(data: ProfileUpdate, user=Depends(current_user)):
     async with aiosqlite.connect(DB) as db:
-        if "nick" in data: await db.execute("UPDATE users SET custom_nick=? WHERE id=?", (data["nick"], user.get("id")))
-        if "bio" in data: await db.execute("UPDATE users SET bio=? WHERE id=?", (data["bio"], user.get("id")))
+        if data.custom_nick: await db.execute("UPDATE users SET custom_nick=? WHERE id=?", (data.custom_nick, user.get("id")))
+        if data.bio is not None: await db.execute("UPDATE users SET bio=? WHERE id=?", (data.bio, user.get("id")))
+        if data.theme: await db.execute("UPDATE users SET theme=? WHERE id=?", (data.theme, user.get("id")))
         await db.commit()
     return {"ok": True}
 
+# --- ПОКУПКИ ---
+@app.post("/api/buy_frame")
+async def buy_frame(frame: str, user=Depends(current_user)):
+    costs = {"gold": 50, "fire": 100, "sakura": 150}
+    if frame not in costs: raise HTTPException(400)
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
+        if (await cur.fetchone())[0] < costs[frame]: raise HTTPException(400, "Мало кристаллов!")
+        await db.execute("UPDATE users SET crystals = crystals - ?, frame = ? WHERE id=?", (costs[frame], frame, user.get("id")))
+        await db.commit()
+    return {"ok": True}
+
+@app.post("/api/buy_gift")
+async def buy_gift(data: GiftIn, user=Depends(current_user)):
+    costs = {"heart": 10, "star": 30, "crown": 100}
+    if data.gift not in costs: raise HTTPException(400)
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
+        if (await cur.fetchone())[0] < costs[data.gift]: raise HTTPException(400, "Мало кристаллов!")
+        await db.execute("UPDATE users SET crystals = crystals - ? WHERE id=?", (costs[data.gift], user.get("id")))
+        await db.execute("INSERT INTO gifts(from_id, to_id, gift_name) VALUES (?, ?, ?)", (user.get("id"), data.to_id, data.gift))
+        await db.commit()
+    return {"ok": True}
+
+# --- ФАЙЛЫ ---
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...), user=Depends(current_user)):
     content = await file.read()
@@ -216,6 +249,13 @@ async def get_sticker(file_id: str):
         path = r.json()["result"]["file_path"]
         img = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}")
     return StreamingResponse(iter([img.content]), media_type="image/webp")
+
+@app.get("/api/settings")
+async def get_settings():
+    async with aiosqlite.connect(DB) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute("SELECT key, value FROM settings")
+        return {r["key"]: r["value"] for r in await cur.fetchall()}
 
 @app.on_event("startup")
 async def _startup(): await init_db()

@@ -17,8 +17,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 async def ensure_user(user):
     async with aiosqlite.connect(DB) as db:
-        await db.execute("INSERT OR IGNORE INTO users(id, username, first_name) VALUES (?,?,?)",
-                         (user.get("id"), user.get("username"), user.get("first_name")))
+        await db.execute("INSERT OR IGNORE INTO users(id, username, first_name) VALUES (?,?,?)", (user.get("id"), user.get("username"), user.get("first_name")))
         await db.commit()
 
 class PostIn(BaseModel):
@@ -27,33 +26,48 @@ class CommentIn(BaseModel):
     post_id: int; parent_id: int | None = None; body: str; file_id: str | None = None
 class VoteIn(BaseModel):
     target_type: str; target_id: int; value: int
-class ProfileUpdate(BaseModel):
-    custom_nick: str | None = None; bio: str | None = None; theme: str | None = None
 class ReactionIn(BaseModel):
     target_type: str; target_id: int; emoji: str
 
 @app.get("/ping")
 async def ping(): return {"status": "alive"}
 
+# --- МУЗЫКА ---
+@app.get("/api/playlist")
+async def get_playlist():
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT value FROM settings WHERE key='playlist'")
+        row = await cur.fetchone()
+    return json.loads(row[0]) if row and row[0] else []
+
+@app.get("/api/music/{index}")
+async def get_music(index: int):
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT value FROM settings WHERE key='playlist'")
+        row = await cur.fetchone()
+    playlist = json.loads(row[0]) if row and row[0] else []
+    if index >= len(playlist): raise HTTPException(404)
+    file_id = playlist[index]
+    async with httpx.AsyncClient() as c:
+        r = await c.get(f"{TG_API}/getFile?file_id={file_id}")
+        if not r.json().get("ok"): raise HTTPException(500)
+        path = r.json()["result"]["file_path"]
+        file_resp = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}", timeout=60)
+    return StreamingResponse(iter([file_resp.content]), media_type="audio/mpeg")
+
+# --- ПОСТЫ ---
 @app.get("/api/posts")
 async def list_posts(sort: str = "new", q: str | None = None, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
         db.row_factory = aiosqlite.Row
-        query = """SELECT p.*, u.username, u.first_name, u.custom_nick, u.badge,
-                   (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id) AS comments
-                   FROM posts p JOIN users u ON u.id=p.author_id 
-                   WHERE p.status='approved' AND p.is_hidden=0"""
+        query = """SELECT p.*, u.username, u.first_name, u.custom_nick, u.badge, (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id) AS comments
+                   FROM posts p JOIN users u ON u.id=p.author_id WHERE p.status='approved' AND p.is_hidden=0"""
         params = []
         if q: query += " AND p.tags LIKE ?"; params.append(f"%{q}%")
-        
-        if sort == "day_top":
-            query += " AND p.created_at >= date('now', '-1 day') ORDER BY p.score DESC"
-        else:
-            query += " ORDER BY p.created_at DESC"
-            
-        query += " LIMIT 50"
-        cur = await db.execute(query, params)
+        if sort == "day_top": query += " AND p.created_at >= date('now', '-1 day') ORDER BY p.score DESC"
+        else: query += " ORDER BY p.created_at DESC"
+        cur = await db.execute(query + " LIMIT 50", params)
         posts = [dict(r) for r in await cur.fetchall()]
         for p in posts:
             cur = await db.execute("SELECT emoji, COUNT(*) as c FROM reactions WHERE target_type='post' AND target_id=? GROUP BY emoji", (p["id"],))
@@ -66,10 +80,8 @@ async def create_post(data: PostIn, user=Depends(current_user)):
     async with aiosqlite.connect(DB) as db:
         tags_str = ', '.join([t.strip().replace('#', '') for t in data.tags.split(',') if t.strip()][:3]) or 'general'
         status = 'approved' if user.get("id") in ADMIN_IDS else 'pending'
-        cur = await db.execute("INSERT INTO posts(author_id,title,body,tags,image_file_id,status) VALUES (?,?,?,?,?,?)",
-                               (user.get("id"), data.title, data.body, tags_str, data.image_file_id, status))
+        cur = await db.execute("INSERT INTO posts(author_id,title,body,tags,image_file_id,status) VALUES (?,?,?,?,?,?)", (user.get("id"), data.title, data.body, tags_str, data.image_file_id, status))
         post_id = cur.lastrowid
-        await db.execute("UPDATE users SET crystals = crystals + 10 WHERE id=?", (user.get("id"),))
         await db.commit()
 
     if status == 'pending':
@@ -77,19 +89,16 @@ async def create_post(data: PostIn, user=Depends(current_user)):
             kb = {"inline_keyboard": [[{"text": "✅ Одобрить", "callback_data": f"mod_ok_{post_id}"},{"text": "❌ Отклонить", "callback_data": f"mod_no_{post_id}"}]]}
             caption = f"🛡️ <b>Пост на модерацию!</b>\nОт: {user.get('first_name')}\n\n<b>{data.title}</b>\n{data.body[:200]}...\n\nТеги: {tags_str}"
             async with httpx.AsyncClient() as client:
-                if data.image_file_id:
-                    await client.post(f"{TG_API}/sendPhoto", data={"chat_id": admin, "photo": data.image_file_id, "caption": caption, "parse_mode": "HTML", "reply_markup": json.dumps(kb)})
-                else:
-                    await client.post(f"{TG_API}/sendMessage", data={"chat_id": admin, "text": caption, "parse_mode": "HTML", "reply_markup": json.dumps(kb)})
-    return {"id": post_id, "status": status}
+                if data.image_file_id: await client.post(f"{TG_API}/sendPhoto", data={"chat_id": admin, "photo": data.image_file_id, "caption": caption, "parse_mode": "HTML", "reply_markup": json.dumps(kb)})
+                else: await client.post(f"{TG_API}/sendMessage", data={"chat_id": admin, "text": caption, "parse_mode": "HTML", "reply_markup": json.dumps(kb)})
+    return {"id": post_id}
 
 @app.delete("/api/posts/{post_id}")
 async def delete_post(post_id: int, user=Depends(current_user)):
     async with aiosqlite.connect(DB) as db:
         cur = await db.execute("SELECT author_id FROM posts WHERE id=?", (post_id,))
         row = await cur.fetchone()
-        if not row: raise HTTPException(404)
-        if row[0] != user.get("id") and user.get("id") not in ADMIN_IDS: raise HTTPException(403)
+        if not row or (row[0] != user.get("id") and user.get("id") not in ADMIN_IDS): raise HTTPException(403)
         await db.execute("DELETE FROM posts WHERE id=?", (post_id,))
         await db.commit()
     return {"ok": True}
@@ -119,10 +128,8 @@ async def create_comment(data: CommentIn, user=Depends(current_user)):
     async with aiosqlite.connect(DB) as db:
         cur = await db.execute("SELECT created_at FROM comments WHERE author_id=? ORDER BY id DESC LIMIT 1", (user.get("id"),))
         last = await cur.fetchone()
-        if last and (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(last[0])).total_seconds() < 30:
-            raise HTTPException(400, "КД 30 секунд!")
-        body = data.body
-        if data.file_id: body += f"\n[sticker]{data.file_id}[/sticker]"
+        if last and (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(last[0])).total_seconds() < 30: raise HTTPException(400, "КД 30 сек!")
+        body = data.body + (f"\n[sticker]{data.file_id}[/sticker]" if data.file_id else "")
         cur = await db.execute("INSERT INTO comments(post_id,parent_id,author_id,body) VALUES (?,?,?,?)", (data.post_id, data.parent_id, user.get("id"), body))
         await db.commit()
     return {"id": cur.lastrowid}
@@ -135,10 +142,8 @@ async def vote(data: VoteIn, user=Depends(current_user)):
         cur = await db.execute("SELECT value FROM votes WHERE user_id=? AND target_type=? AND target_id=?", (user.get("id"), data.target_type, data.target_id))
         old = await cur.fetchone()
         delta = data.value - (old[0] if old else 0)
-        if data.value == 0:
-            await db.execute("DELETE FROM votes WHERE user_id=? AND target_type=? AND target_id=?", (user.get("id"), data.target_type, data.target_id))
-        else:
-            await db.execute("INSERT INTO votes VALUES (?,?,?,?) ON CONFLICT DO UPDATE SET value=excluded.value", (user.get("id"), data.target_type, data.target_id, data.value))
+        if data.value == 0: await db.execute("DELETE FROM votes WHERE user_id=? AND target_type=? AND target_id=?", (user.get("id"), data.target_type, data.target_id))
+        else: await db.execute("INSERT INTO votes VALUES (?,?,?,?) ON CONFLICT DO UPDATE SET value=excluded.value", (user.get("id"), data.target_type, data.target_id, data.value))
         await db.execute(f"UPDATE {table} SET score=score+? WHERE id=?", (delta, data.target_id))
         await db.commit()
     return {"ok": True}
@@ -148,12 +153,10 @@ async def react(data: ReactionIn, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
         cur = await db.execute("SELECT emoji FROM reactions WHERE user_id=? AND target_type=? AND target_id=?", (user.get("id"), data.target_type, data.target_id))
-        my_reactions = [r[0] for r in await cur.fetchall()]
-        max_reactions = 3 if user.get("id") in ADMIN_IDS else 1
-        if data.emoji in my_reactions:
-            await db.execute("DELETE FROM reactions WHERE user_id=? AND target_type=? AND target_id=? AND emoji=?", (user.get("id"), data.target_type, data.target_id, data.emoji))
+        my = [r[0] for r in await cur.fetchall()]
+        if data.emoji in my: await db.execute("DELETE FROM reactions WHERE user_id=? AND target_type=? AND target_id=? AND emoji=?", (user.get("id"), data.target_type, data.target_id, data.emoji))
         else:
-            if len(my_reactions) >= max_reactions: raise HTTPException(400, "Лимит реакций!")
+            if len(my) >= (3 if user.get("id") in ADMIN_IDS else 1): raise HTTPException(400, "Лимит!")
             await db.execute("INSERT INTO reactions VALUES (?,?,?,?)", (user.get("id"), data.target_type, data.target_id, data.emoji))
         await db.commit()
     return {"ok": True}
@@ -166,30 +169,53 @@ async def get_profile(user_id: int, user=Depends(current_user)):
         u = await cur.fetchone()
         if not u: raise HTTPException(404)
         cur = await db.execute("SELECT SUM(score) FROM posts WHERE author_id=?", (user_id,))
-        p_karma = (await cur.fetchone())[0] or 0
+        p = (await cur.fetchone())[0] or 0
         cur = await db.execute("SELECT SUM(score) FROM comments WHERE author_id=?", (user_id,))
-        c_karma = (await cur.fetchone())[0] or 0
+        c = (await cur.fetchone())[0] or 0
         cur = await db.execute("SELECT title FROM posts WHERE author_id=? ORDER BY score DESC LIMIT 1", (user_id,))
-        top_post = await cur.fetchone()
+        top = await cur.fetchone()
         cur = await db.execute("SELECT ach_name FROM achievements WHERE user_id=?", (user_id,))
         achs = [r["ach_name"] for r in await cur.fetchall()]
-    return {**dict(u), "karma": p_karma + c_karma, "level": (p_karma + c_karma) // 10, "top_post": dict(top_post) if top_post else None, "achievements": achs}
+    return {**dict(u), "karma": p + c, "level": (p + c) // 10, "top_post": dict(top) if top else None, "achievements": achs}
 
-@app.get("/api/music")
-async def get_music():
+@app.post("/api/profile")
+async def update_profile(data: dict, user=Depends(current_user)):
     async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT value FROM settings WHERE key='playlist'")
+        if "nick" in data: await db.execute("UPDATE users SET custom_nick=? WHERE id=?", (data["nick"], user.get("id")))
+        if "bio" in data: await db.execute("UPDATE users SET bio=? WHERE id=?", (data["bio"], user.get("id")))
+        await db.commit()
+    return {"ok": True}
+
+@app.post("/api/upload")
+async def upload_file(file: UploadFile = File(...), user=Depends(current_user)):
+    content = await file.read()
+    async with httpx.AsyncClient() as client:
+        r = await client.post(f"{TG_API}/sendDocument", data={"chat_id": user.get("id")}, files={"document": ("file.gif", content)})
+        res = r.json()
+        if not res.get("ok"): raise HTTPException(500)
+        await client.post(f"{TG_API}/deleteMessage", json={"chat_id": user.get("id"), "message_id": res["result"]["message_id"]})
+    return {"file_id": res["result"]["document"]["file_id"]}
+
+@app.get("/api/image/{post_id}")
+async def get_image(post_id: int):
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT image_file_id FROM posts WHERE id=?", (post_id,))
         row = await cur.fetchone()
-    playlist = json.loads(row[0]) if row and row[0] else []
-    if not playlist: raise HTTPException(404)
-    # Возвращаем первый трек
-    file_id = playlist[0]
+    if not row or not row[0]: raise HTTPException(404)
+    async with httpx.AsyncClient() as c:
+        r = await c.get(f"{TG_API}/getFile?file_id={row[0]}")
+        path = r.json()["result"]["file_path"]
+        img = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}")
+    return StreamingResponse(iter([img.content]), media_type="image/jpeg")
+
+@app.get("/api/sticker/{file_id}")
+async def get_sticker(file_id: str):
     async with httpx.AsyncClient() as c:
         r = await c.get(f"{TG_API}/getFile?file_id={file_id}")
-        if not r.json().get("ok"): raise HTTPException(500, "Ошибка API")
+        if not r.json().get("ok"): raise HTTPException(404)
         path = r.json()["result"]["file_path"]
-        file_resp = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}", timeout=60)
-    return StreamingResponse(iter([file_resp.content]), media_type="audio/mpeg")
+        img = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}")
+    return StreamingResponse(iter([img.content]), media_type="image/webp")
 
 @app.on_event("startup")
 async def _startup(): await init_db()

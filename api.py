@@ -1,7 +1,7 @@
 import json, os, httpx, datetime
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse, RedirectResponse
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import aiosqlite
@@ -24,7 +24,7 @@ async def ensure_user(user):
 class PostIn(BaseModel):
     title: str; body: str; tags: str = "general"; image_file_id: str | None = None
 class CommentIn(BaseModel):
-    post_id: int; parent_id: int | None = None; body: str
+    post_id: int; parent_id: int | None = None; body: str; file_id: str | None = None
 class VoteIn(BaseModel):
     target_type: str; target_id: int; value: int
 class ProfileUpdate(BaseModel):
@@ -47,7 +47,6 @@ async def list_posts(sort: str = "new", q: str | None = None, user=Depends(curre
         params = []
         if q: query += " AND p.tags LIKE ?"; params.append(f"%{q}%")
         
-        # ИСПРАВЛЕНА СОРТИРОВКА (Кнопка Популярное)
         if sort == "day_top":
             query += " AND p.created_at >= date('now', '-1 day') ORDER BY p.score DESC"
         else:
@@ -73,7 +72,6 @@ async def create_post(data: PostIn, user=Depends(current_user)):
         await db.execute("UPDATE users SET crystals = crystals + 10 WHERE id=?", (user.get("id"),))
         await db.commit()
 
-    # МОДЕРАЦИЯ
     if status == 'pending':
         for admin in ADMIN_IDS:
             kb = {"inline_keyboard": [[{"text": "✅ Одобрить", "callback_data": f"mod_ok_{post_id}"},{"text": "❌ Отклонить", "callback_data": f"mod_no_{post_id}"}]]}
@@ -123,7 +121,9 @@ async def create_comment(data: CommentIn, user=Depends(current_user)):
         last = await cur.fetchone()
         if last and (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(last[0])).total_seconds() < 30:
             raise HTTPException(400, "КД 30 секунд!")
-        cur = await db.execute("INSERT INTO comments(post_id,parent_id,author_id,body) VALUES (?,?,?,?)", (data.post_id, data.parent_id, user.get("id"), data.body))
+        body = data.body
+        if data.file_id: body += f"\n[sticker]{data.file_id}[/sticker]"
+        cur = await db.execute("INSERT INTO comments(post_id,parent_id,author_id,body) VALUES (?,?,?,?)", (data.post_id, data.parent_id, user.get("id"), body))
         await db.commit()
     return {"id": cur.lastrowid}
 
@@ -178,11 +178,12 @@ async def get_profile(user_id: int, user=Depends(current_user)):
 @app.get("/api/music")
 async def get_music():
     async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT value FROM settings WHERE key='music_url'")
+        cur = await db.execute("SELECT value FROM settings WHERE key='playlist'")
         row = await cur.fetchone()
-    if not row or not row[0]: raise HTTPException(404)
-    file_id = row[0]
-    if file_id.startswith('http'): return RedirectResponse(file_id)
+    playlist = json.loads(row[0]) if row and row[0] else []
+    if not playlist: raise HTTPException(404)
+    # Возвращаем первый трек
+    file_id = playlist[0]
     async with httpx.AsyncClient() as c:
         r = await c.get(f"{TG_API}/getFile?file_id={file_id}")
         if not r.json().get("ok"): raise HTTPException(500, "Ошибка API")

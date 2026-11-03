@@ -30,7 +30,7 @@ async def start_cmd(message: types.Message):
     GIF_URL = "https://media.giphy.com/media/VbnUQpnihPSIgIXuZv/giphy.gif"
     kb = InlineKeyboardBuilder()
     kb.button(text="📖 Открыть RaReads", web_app=WebAppInfo(url=APP_URL))
-    await message.answer_animation(animation=GIF_URL, caption=f"Привет, <b>{message.from_user.first_name}</b>! ⛩️", parse_mode="HTML", reply_markup=kb.as_markup())
+    await message.answer_animation(animation=GIF_URL, caption=f"Привет, <b>{message.from_user.first_name}</b>! ⛩️\n\nДобро пожаловать в RaReads!", parse_mode="HTML", reply_markup=kb.as_markup())
 
 @dp.message(Command("stats"))
 async def stats_cmd(message: types.Message):
@@ -71,6 +71,20 @@ async def handle_music(message: types.Message):
         await db.execute("UPDATE settings SET value=? WHERE key='music_url'", (file_id,))
         await db.commit()
     await message.answer("🎵 Музыка обновлена!")
+
+@dp.callback_query(F.data.startswith("mod_"))
+async def mod_action(callback: types.CallbackQuery):
+    if callback.from_user.id not in ADMIN_IDS: return await callback.answer("Нет доступа", show_alert=True)
+    action, post_id = callback.data.split("_")[1], callback.data.split("_")[2]
+    async with aiosqlite.connect(DB) as db:
+        if action == "ok":
+            await db.execute("UPDATE posts SET status='approved' WHERE id=?", (post_id,))
+            await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ <b>ОДОБРЕНО</b>", parse_mode="HTML")
+        else:
+            await db.execute("DELETE FROM posts WHERE id=?", (post_id,))
+            await callback.message.edit_caption(caption=callback.message.caption + "\n\n❌ <b>ОТКЛОНЕНО</b>", parse_mode="HTML")
+        await db.commit()
+    await callback.answer("Готово!")
 
 async def set_commands():
     await bot.set_my_commands([

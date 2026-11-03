@@ -1,4 +1,4 @@
-import os, asyncio, httpx, random
+import os, asyncio, httpx, random, json
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import WebAppInfo, MenuButtonCommands
@@ -30,47 +30,29 @@ async def start_cmd(message: types.Message):
     GIF_URL = "https://media.giphy.com/media/VbnUQpnihPSIgIXuZv/giphy.gif"
     kb = InlineKeyboardBuilder()
     kb.button(text="📖 Открыть RaReads", web_app=WebAppInfo(url=APP_URL))
-    await message.answer_animation(animation=GIF_URL, caption=f"Привет, <b>{message.from_user.first_name}</b>! ⛩️\n\nДобро пожаловать в RaReads!", parse_mode="HTML", reply_markup=kb.as_markup())
+    await message.answer_animation(animation=GIF_URL, caption=f"Привет, <b>{message.from_user.first_name}</b>! ⛩️", parse_mode="HTML", reply_markup=kb.as_markup())
 
-@dp.message(Command("stats"))
-async def stats_cmd(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS: return
-    async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT COUNT(*) FROM users")
-        u = (await cur.fetchone())[0]
-        cur = await db.execute("SELECT COUNT(*) FROM posts")
-        p = (await cur.fetchone())[0]
-    await message.answer(f"📊 Юзеров: {u}\n📝 Постов: {p}")
+# Приём стикеров и гифок в ЛС (пересылает file_id в комментарий)
+@dp.message(F.sticker | F.animation | F.photo)
+async def handle_media(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS:
+        # Отправляем file_id юзеру (он может использовать в комменте)
+        file_id = message.sticker.file_id if message.sticker else (message.animation.file_id if message.animation else message.photo[-1].file_id)
+        await message.answer(f"📎 Твой file_id:\n<code>{file_id}</code>\n\nСкопируй и отправь в комментарии в приложении (прикрепи как текст).", parse_mode="HTML")
 
-@dp.message(Command("badge"))
-async def badge_cmd(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS: return
-    try:
-        args = message.text.split()
-        target_id, badge = int(args[1]), args[2]
-        async with aiosqlite.connect(DB) as db:
-            await db.execute("UPDATE users SET badge = ? WHERE id=?", (badge, target_id))
-            await db.commit()
-        await message.answer(f"✅ Значок выдан.")
-    except: await message.answer("Формат: /badge <id> <текст>")
-
-@dp.message(Command("roulette"))
-async def roulette_cmd(message: types.Message):
-    win = random.choice([0, 1, 2, 5, 10])
-    async with aiosqlite.connect(DB) as db:
-        await db.execute("INSERT OR IGNORE INTO users(id, username, first_name) VALUES (?,?,?)", (message.from_user.id, message.from_user.username, message.from_user.first_name))
-        await db.execute("UPDATE users SET crystals = crystals + ? WHERE id=?", (win, message.from_user.id))
-        await db.commit()
-    await message.answer(f"🎰 Ты выиграл {win} 💎!")
-
-@dp.message(F.audio | F.document) 
+# Приём музыки в ЛС (добавляет в плейлист)
+@dp.message(F.audio | F.document)
 async def handle_music(message: types.Message):
     if message.from_user.id not in ADMIN_IDS: return
     file_id = message.audio.file_id if message.audio else message.document.file_id
     async with aiosqlite.connect(DB) as db:
-        await db.execute("UPDATE settings SET value=? WHERE key='music_url'", (file_id,))
+        cur = await db.execute("SELECT value FROM settings WHERE key='playlist'")
+        row = await cur.fetchone()
+        playlist = json.loads(row[0]) if row and row[0] else []
+        playlist.append(file_id)
+        await db.execute("UPDATE settings SET value=? WHERE key='playlist'", (json.dumps(playlist),))
         await db.commit()
-    await message.answer("🎵 Музыка обновлена!")
+    await message.answer(f"🎵 Трек добавлен! В плейлисте: {len(playlist)}")
 
 @dp.callback_query(F.data.startswith("mod_"))
 async def mod_action(callback: types.CallbackQuery):

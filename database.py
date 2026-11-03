@@ -1,4 +1,4 @@
-import aiosqlite
+iimport aiosqlite
 
 DB = "rareads.db"
 
@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, 
     bio TEXT DEFAULT '', custom_nick TEXT, theme TEXT DEFAULT 'default',
     crystals INTEGER DEFAULT 0, frame TEXT DEFAULT 'none', badge TEXT DEFAULT '',
-    is_banned INTEGER DEFAULT 0, last_daily TIMESTAMP,
+    banner TEXT DEFAULT 'none',
+    is_banned INTEGER DEFAULT 0, last_daily TIMESTAMP, last_roulette TIMESTAMP,
     referred_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS posts (

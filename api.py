@@ -9,9 +9,9 @@ from database import DB, init_db
 from auth import current_user
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+APP_URL = os.environ.get("APP_URL", "https://твой-сайт.onrender.com")
 ADMIN_IDS = {5024935475}
 TG_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
-APP_URL = os.environ.get("APP_URL", "https://твой-сайт.onrender.com")
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -81,7 +81,7 @@ class RedeemIn(BaseModel):
 
 class BoostIn(BaseModel):
     post_id: int
-    boost_type: str  # "1m", "10m", "30m"
+    boost_type: str
 
 class StyleIn(BaseModel):
     post_id: int
@@ -292,7 +292,18 @@ async def get_profile(user_id: int, user=Depends(current_user)):
         is_subscribed = bool(await cur.fetchone())
         cur = await db.execute("SELECT COUNT(*) FROM strikes WHERE user_id=?", (user_id,))
         strikes_count = (await cur.fetchone())[0]
-    return {**dict(u), "karma": p + c, "level": (p + c) // 10, "top_post": dict(top) if top else None, "achievements": achs, "gifts": gifts, "is_subscribed": is_subscribed, "strikes": strikes_count}
+        
+        # Купленные рамки (owned_frames) — список через запятую
+        owned_frames = u.get("owned_frames", "") or ""
+        # Если поле frame не 'none', оно тоже считается купленным
+        if u.get("frame") and u.get("frame") != "none" and u.get("frame") not in owned_frames.split(","):
+            owned_frames = (owned_frames + "," + u.get("frame")).strip(",")
+    return {
+        **dict(u), "karma": p + c, "level": (p + c) // 10, 
+        "top_post": dict(top) if top else None, "achievements": achs, 
+        "gifts": gifts, "is_subscribed": is_subscribed, "strikes": strikes_count,
+        "owned_frames": owned_frames
+    }
 
 @app.post("/api/profile")
 async def update_profile(data: ProfileUpdate, user=Depends(current_user)):
@@ -353,12 +364,30 @@ async def game_case(user=Depends(current_user)):
 @app.post("/api/buy_frame")
 async def buy_frame(frame: str, user=Depends(current_user)):
     await ensure_user(user)
-    costs = {"gold": 50, "fire": 100, "sakura": 150, "anime": 200, "neon": 250}
-    if frame not in costs: raise HTTPException(400)
+    costs = {"gold": 50, "fire": 100, "sakura": 150, "anime": 200, "neon": 250, "galaxy": 300, "stars": 350, "rainbow": 400}
+    if frame not in costs: raise HTTPException(400, "Неизвестная рамка")
     async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
-        if (await cur.fetchone())[0] < costs[frame]: raise HTTPException(400, "Мало кристаллов!")
-        await db.execute("UPDATE users SET crystals = crystals - ?, frame = ? WHERE id=?", (costs[frame], frame, user.get("id")))
+        cur = await db.execute("SELECT crystals, owned_frames, frame FROM users WHERE id=?", (user.get("id"),))
+        row = await cur.fetchone()
+        crystals, owned, current_frame = row
+        owned_list = (owned or "").split(",") if owned else []
+        if frame in owned_list or frame == current_frame:
+            raise HTTPException(400, "Рамка уже куплена")
+        if crystals < costs[frame]: raise HTTPException(400, "Мало кристаллов!")
+        new_owned = ",".join(owned_list + [frame]).strip(",")
+        await db.execute("UPDATE users SET crystals = crystals - ?, frame = ?, owned_frames = ? WHERE id=?", 
+                         (costs[frame], frame, new_owned, user.get("id")))
+        await db.commit()
+    return {"ok": True}
+
+@app.post("/api/equip_frame")
+async def equip_frame(frame: str, user=Depends(current_user)):
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT owned_frames FROM users WHERE id=?", (user.get("id"),))
+        owned = (await cur.fetchone())[0] or ""
+        if frame not in owned.split(",") and frame != "none":
+            raise HTTPException(400, "Рамка не куплена")
+        await db.execute("UPDATE users SET frame=? WHERE id=?", (frame, user.get("id")))
         await db.commit()
     return {"ok": True}
 

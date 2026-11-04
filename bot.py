@@ -35,19 +35,24 @@ async def get_avatar_file_id(user_id: int) -> str | None:
 async def start_cmd(message: types.Message):
     avatar_id = await get_avatar_file_id(message.from_user.id)
     async with aiosqlite.connect(DB) as db:
-        await db.execute("INSERT OR IGNORE INTO users(id, username, first_name, avatar) VALUES (?,?,?,?)", (message.from_user.id, message.from_user.username, message.from_user.first_name, avatar_id))
+        await db.execute("INSERT OR IGNORE INTO users(id, username, first_name) VALUES (?,?,?)", (message.from_user.id, message.from_user.username, message.from_user.first_name))
         if avatar_id:
-            await db.execute("UPDATE users SET avatar = ? WHERE id = ? AND (avatar IS NULL OR avatar = '')", (avatar_id, message.from_user.id))
+            await db.execute("UPDATE users SET avatar = ? WHERE id = ?", (avatar_id, message.from_user.id))
+        await db.execute("UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = ?", (message.from_user.id,))
         await db.commit()
     GIF_URL = "https://media.giphy.com/media/VbnUQpnihPSIgIXuZv/giphy.gif"
     kb = InlineKeyboardBuilder()
     kb.button(text="📖 Открыть RaReads", web_app=WebAppInfo(url=APP_URL))
     await message.answer_animation(animation=GIF_URL, caption=f"Привет, <b>{message.from_user.first_name}</b>! ⛩️\n\nДобро пожаловать в RaReads!", parse_mode="HTML", reply_markup=kb.as_markup())
 
+@dp.message(Command("support"))
+async def support_cmd(message: types.Message):
+    await message.answer("🆘 Поддержка: @kvails (https://t.me/kvails)")
+
 @dp.message(Command("admin"))
 async def admin_cmd(message: types.Message):
     if message.from_user.id not in ADMIN_IDS: return
-    await message.answer("🛡️ Админ-команды:\n/stats\n/badge <id> <текст>\n/ban <id>\n/give_crystals <id> <сумма>\n/add_banner <название> <цена> <url>")
+    await message.answer("🛡️ Админ-команды:\n/stats\n/badge <id> <текст>\n/ban <id>\n/give_crystals <id> <сумма>\n/add_banner <название> <цена> <url>\n/remove_track <номер>")
 
 @dp.message(Command("stats"))
 async def stats_cmd(message: types.Message):
@@ -103,7 +108,24 @@ async def add_banner(message: types.Message):
         await message.answer("✅ Баннер добавлен!")
     except: await message.answer("Формат: /add_banner <название> <цена> <url>")
 
-# --- ИГРЫ ---
+@dp.message(Command("remove_track"))
+async def remove_track(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS: return
+    try:
+        idx = int(message.text.split()[1]) - 1
+        async with aiosqlite.connect(DB) as db:
+            cur = await db.execute("SELECT value FROM settings WHERE key='playlist'")
+            row = await cur.fetchone(); pl = json.loads(row[0]) if row and row[0] else []
+            if 0 <= idx < len(pl):
+                pl.pop(idx)
+                await db.execute("UPDATE settings SET value=? WHERE key='playlist'", (json.dumps(pl),))
+                await db.commit()
+                await message.answer(f"✅ Трек {idx+1} удалён. Осталось: {len(pl)}")
+            else:
+                await message.answer("Нет такого трека.")
+    except: await message.answer("Формат: /remove_track <номер>")
+
+# --- ИГРЫ (дублируют приложение, но полезны) ---
 @dp.message(Command("roulette"))
 async def roulette_cmd(message: types.Message):
     async with aiosqlite.connect(DB) as db:
@@ -111,9 +133,9 @@ async def roulette_cmd(message: types.Message):
         cur = await db.execute("SELECT last_roulette FROM users WHERE id=?", (message.from_user.id,))
         last = await cur.fetchone()
         now = datetime.datetime.utcnow()
-        if last and last[0] and (now - datetime.datetime.fromisoformat(last[0])).total_seconds() < 43200:
-            return await message.answer("⏳ Рулетка доступна раз в 12 часов!")
-        win = random.choice([0, 1, 2, 5, 10])
+        if last and last[0] and (now - datetime.datetime.fromisoformat(last[0])).total_seconds() < 86400:
+            return await message.answer("⏳ Рулетка раз в 24 часа!")
+        win = random.choice([0, 1, 2, 5, 10, 50])
         await db.execute("UPDATE users SET crystals = crystals + ?, last_roulette=? WHERE id=?", (win, now.isoformat(), message.from_user.id))
         await db.commit()
     await message.answer(f"🎰 Ты выиграл {win} 💎!")
@@ -152,7 +174,7 @@ async def rocket_cmd(message: types.Message):
 @dp.message(F.sticker | F.animation | F.photo)
 async def handle_media(message: types.Message):
     fid = message.sticker.file_id if message.sticker else (message.animation.file_id if message.animation else message.photo[-1].file_id)
-    await message.answer(f"📎 Твой file_id:\n<code>{fid}</code>\n\nОтправь его в комментарии (через поле 'Текст').", parse_mode="HTML")
+    await message.answer(f"📎 Твой file_id:\n<code>{fid}</code>\n\nВставь его в комментарий (через поле 'Текст').", parse_mode="HTML")
 
 @dp.message(F.audio | F.document)
 async def handle_music(message: types.Message):
@@ -190,6 +212,7 @@ async def set_commands():
         types.BotCommand(command="roulette", description="Рулетка 🎰"),
         types.BotCommand(command="slots", description="Слоты 🎰"),
         types.BotCommand(command="rocket", description="Ракета 🚀"),
+        types.BotCommand(command="support", description="Поддержка 🆘"),
         types.BotCommand(command="stats", description="Статистика 📊"),
         types.BotCommand(command="admin", description="Админ 🛡️")
     ])

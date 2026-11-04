@@ -212,7 +212,8 @@ async def remove_track(message: types.Message):
             else:
                 await message.answer("Нет такого трека.")
     except: await message.answer("Формат: /remove_track <номер>")
-        @dp.message(Command("redeem"))
+
+@dp.message(Command("redeem"))
 async def redeem_cmd(message: types.Message):
     try:
         code = message.text.split()[1]
@@ -255,7 +256,7 @@ async def report_user_cmd(message: types.Message):
         args = message.text.split(maxsplit=2)
         target, reason = int(args[1]), args[2]
         async with aiosqlite.connect(DB) as db:
-            await db.execute("INSERT INTO reports(reporter_id, target_id, reason) VALUES (?,?,?)", (message.from_user.id, target, reason))
+            await db.execute("INSERT INTO reports(reporter_id, target_type, target_id, reason) VALUES (?,?,?,?)", (message.from_user.id, "user", target, reason))
             await db.commit()
         for admin in ADMIN_IDS:
             try:
@@ -313,7 +314,7 @@ async def set_commands():
     await bot.set_my_commands([
         types.BotCommand(command="start", description="Запуск ⛩️"),
         types.BotCommand(command="support", description="Поддержка 🆘"),
-        types.BotCommand(command="redeem", description="Активировать промокод 🎁"),
+        types.BotCommand(command="redeem", description="Промокод 🎁"),
         types.BotCommand(command="appeal", description="Апелляция ⚖️"),
         types.BotCommand(command="stats", description="Статистика 📊"),
         types.BotCommand(command="admin", description="Админ 🛡️")

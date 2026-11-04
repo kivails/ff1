@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     banner TEXT DEFAULT 'none',
     avatar TEXT DEFAULT '',
     is_banned INTEGER DEFAULT 0, last_daily TIMESTAMP, last_roulette TIMESTAMP,
+    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     referred_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS posts (
@@ -44,7 +45,7 @@ CREATE TABLE IF NOT EXISTS reactions (
 );
 CREATE TABLE IF NOT EXISTS gifts (
     id INTEGER PRIMARY KEY AUTOINCREMENT, from_id INTEGER NOT NULL, 
-    to_id INTEGER NOT NULL, gift_name TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    to_id INTEGER NOT NULL, gift_name TEXT NOT NULL, description TEXT DEFAULT '', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS achievements (
     user_id INTEGER NOT NULL, ach_name TEXT NOT NULL, 
@@ -57,27 +58,39 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 CREATE TABLE IF NOT EXISTS banners (
     id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, price INTEGER NOT NULL, image_url TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS games_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, game TEXT NOT NULL, win INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS tags (name TEXT PRIMARY KEY, color TEXT DEFAULT '#ffb7c5', posts_count INTEGER DEFAULT 0);
 """
 
 async def add_column_if_missing(db, table, column, col_type, default=None):
     try:
-        await db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type} DEFAULT {default}" if default else f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+        if default is not None:
+            await db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type} DEFAULT {default}")
+        else:
+            await db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
     except aiosqlite.OperationalError:
-        pass # Колонка уже существует
+        pass
 
 async def init_db():
     async with aiosqlite.connect(DB) as db:
         await db.executescript(SCHEMA)
         
-        # Миграции (добавляем недостающие колонки, если база старая)
+        # Миграции для старых баз (чтобы не падало с ошибкой "no column named avatar")
         await add_column_if_missing(db, "users", "avatar", "TEXT", "''")
         await add_column_if_missing(db, "users", "banner", "TEXT", "'none'")
         await add_column_if_missing(db, "users", "last_roulette", "TIMESTAMP", "NULL")
+        await add_column_if_missing(db, "users", "last_seen", "TIMESTAMP", "CURRENT_TIMESTAMP")
         await add_column_if_missing(db, "posts", "is_anonymous", "INTEGER", "0")
+        await add_column_if_missing(db, "gifts", "description", "TEXT", "''")
         
         await db.execute("INSERT OR IGNORE INTO tags(name) VALUES ('general'), ('anime'), ('news')")
         await db.execute("INSERT OR IGNORE INTO settings(key, value) VALUES ('playlist', '[]'), ('support_link', 'https://t.me/kvails')")
+        
+        # Базовые баннеры с аниме-картинками
         await db.execute("INSERT OR IGNORE INTO banners(name, price, image_url) VALUES ('Anime 1', 100, 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop')")
+        await db.execute("INSERT OR IGNORE INTO banners(name, price, image_url) VALUES ('Anime 2', 150, 'https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000')")
+        await db.execute("INSERT OR IGNORE INTO banners(name, price, image_url) VALUES ('Anime 3', 200, 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000')")
         await db.commit()

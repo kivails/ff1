@@ -36,14 +36,16 @@ class ProfileUpdate(BaseModel):
 class GiftIn(BaseModel):
     to_id: int
     gift: str
+    description: str = ""
 class SubscribeIn(BaseModel):
     target_id: int
-class SlotBet(BaseModel):
+class BetIn(BaseModel):
     bet: int
 
 @app.get("/ping")
 async def ping(): return {"status": "alive"}
 
+# --- ПЛЕЙЛИСТ ---
 @app.get("/api/playlist")
 async def get_playlist():
     async with aiosqlite.connect(DB) as db:
@@ -66,12 +68,14 @@ async def get_music(index: int):
         file_resp = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}", timeout=60)
     return StreamingResponse(iter([file_resp.content]), media_type="audio/mpeg")
 
+# --- ПОСТЫ ---
 @app.get("/api/posts")
 async def list_posts(sort: str = "new", q: str | None = None, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
         db.row_factory = aiosqlite.Row
-        query = """SELECT p.*, u.username, u.first_name, u.custom_nick, u.badge, (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id) AS comments
+        query = """SELECT p.*, u.username, u.first_name, u.custom_nick, u.badge,
+                   (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id) AS comments
                    FROM posts p JOIN users u ON u.id=p.author_id WHERE p.status='approved' AND p.is_hidden=0"""
         params = []
         if q: query += " AND p.tags LIKE ?"; params.append(f"%{q}%")
@@ -84,13 +88,24 @@ async def list_posts(sort: str = "new", q: str | None = None, user=Depends(curre
             p["reactions"] = {r["emoji"]: r["c"] for r in await cur.fetchall()}
     return {"posts": posts}
 
+@app.get("/api/posts/subscriptions")
+async def subscribed_posts(user=Depends(current_user)):
+    async with aiosqlite.connect(DB) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute("""SELECT p.*, u.username, u.first_name, u.custom_nick, u.badge FROM posts p 
+                                  JOIN users u ON u.id=p.author_id 
+                                  WHERE p.author_id IN (SELECT target_id FROM subscriptions WHERE user_id=?)
+                                  AND p.status='approved' ORDER BY p.created_at DESC LIMIT 50""", (user.get("id"),))
+        return [dict(r) for r in await cur.fetchall()]
+
 @app.post("/api/posts")
 async def create_post(data: PostIn, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
         tags_str = ', '.join([t.strip().replace('#', '') for t in data.tags.split(',') if t.strip()][:3]) or 'general'
         status = 'approved' if user.get("id") in ADMIN_IDS else 'pending'
-        cur = await db.execute("INSERT INTO posts(author_id,title,body,tags,image_file_id,status,is_anonymous) VALUES (?,?,?,?,?,?,?)", (user.get("id"), data.title, data.body, tags_str, data.image_file_id, status, 1 if data.is_anonymous else 0))
+        cur = await db.execute("INSERT INTO posts(author_id,title,body,tags,image_file_id,status,is_anonymous) VALUES (?,?,?,?,?,?,?)", 
+                               (user.get("id"), data.title, data.body, tags_str, data.image_file_id, status, 1 if data.is_anonymous else 0))
         post_id = cur.lastrowid
         await db.commit()
     if status == 'pending':
@@ -188,31 +203,6 @@ async def subscribe(data: SubscribeIn, user=Depends(current_user)):
         await db.commit()
     return {"subscribed": True}
 
-@app.get("/api/subscriptions")
-async def get_subscriptions(user=Depends(current_user)):
-    async with aiosqlite.connect(DB) as db:
-        db.row_factory = aiosqlite.Row
-        cur = await db.execute("""SELECT p.*, u.username, u.first_name, u.custom_nick FROM posts p JOIN users u ON u.id=p.author_id 
-                                  WHERE p.author_id IN (SELECT target_id FROM subscriptions WHERE user_id=?) AND p.status='approved' ORDER BY p.created_at DESC LIMIT 50""", (user.get("id"),))
-        return [dict(r) for r in await cur.fetchall()]
-
-# --- ИГРЫ ---
-@app.post("/api/play_slots")
-async def play_slots(data: SlotBet, user=Depends(current_user)):
-    await ensure_user(user)
-    if data.bet < 5: raise HTTPException(400, "Мин. ставка 5 💎")
-    async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
-        if (await cur.fetchone())[0] < data.bet: raise HTTPException(400, "Мало кристаллов!")
-        icons = ["🍒", "🍋", "💎", "7️⃣", "⭐"]
-        res = [random.choice(icons) for _ in range(3)]
-        win = 0
-        if res[0] == res[1] == res[2]: win = data.bet * 5 if res[0] == "💎" else data.bet * 2
-        elif res[0] == res[1] or res[1] == res[2]: win = data.bet
-        await db.execute("UPDATE users SET crystals = crystals - ? + ? WHERE id=?", (data.bet, win, user.get("id")))
-        await db.commit()
-    return {"result": res, "win": win - data.bet}
-
 # --- ПРОФИЛЬ ---
 @app.get("/api/profile/{user_id}")
 async def get_profile(user_id: int, user=Depends(current_user)):
@@ -229,13 +219,11 @@ async def get_profile(user_id: int, user=Depends(current_user)):
         top = await cur.fetchone()
         cur = await db.execute("SELECT ach_name FROM achievements WHERE user_id=?", (user_id,))
         achs = [r["ach_name"] for r in await cur.fetchall()]
-        cur = await db.execute("""SELECT g.gift_name, u.custom_nick, u.first_name FROM gifts g JOIN users u ON u.id=g.from_id WHERE g.to_id=?""", (user_id,))
-        gifts = [{"name": r["gift_name"], "from": r["custom_nick"] or r["first_name"]} for r in await cur.fetchall()]
+        cur = await db.execute("""SELECT g.gift_name, g.description, u.custom_nick, u.first_name FROM gifts g JOIN users u ON u.id=g.from_id WHERE g.to_id=?""", (user_id,))
+        gifts = [{"name": r["gift_name"], "desc": r["description"], "from": r["custom_nick"] or r["first_name"]} for r in await cur.fetchall()]
         cur = await db.execute("SELECT 1 FROM subscriptions WHERE user_id=? AND target_id=?", (user.get("id"), user_id))
         is_subscribed = bool(await cur.fetchone())
-        cur = await db.execute("SELECT banner, frame FROM users WHERE id=?", (user_id,))
-        extra = await cur.fetchone()
-    return {**dict(u), "karma": p + c, "level": (p + c) // 10, "top_post": dict(top) if top else None, "achievements": achs, "gifts": gifts, "is_subscribed": is_subscribed, "banner": extra["banner"], "frame": extra["frame"]}
+    return {**dict(u), "karma": p + c, "level": (p + c) // 10, "top_post": dict(top) if top else None, "achievements": achs, "gifts": gifts, "is_subscribed": is_subscribed}
 
 @app.post("/api/profile")
 async def update_profile(data: ProfileUpdate, user=Depends(current_user)):
@@ -247,6 +235,47 @@ async def update_profile(data: ProfileUpdate, user=Depends(current_user)):
         if data.banner: await db.execute("UPDATE users SET banner=? WHERE id=?", (data.banner, user.get("id")))
         await db.commit()
     return {"ok": True}
+
+# --- ИГРЫ ---
+@app.post("/api/games/roulette")
+async def game_roulette(user=Depends(current_user)):
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT last_roulette FROM users WHERE id=?", (user.get("id"),))
+        last = await cur.fetchone()
+        now = datetime.datetime.utcnow()
+        if last and last[0] and (now - datetime.datetime.fromisoformat(last[0])).total_seconds() < 86400:
+            raise HTTPException(400, "Рулетка раз в 24 часа!")
+        win = random.choice([0, 1, 2, 5, 10, 50])
+        await db.execute("UPDATE users SET crystals = crystals + ?, last_roulette=? WHERE id=?", (win, now.isoformat(), user.get("id")))
+        await db.commit()
+    return {"win": win}
+
+@app.post("/api/games/rocket")
+async def game_rocket(data: BetIn, user=Depends(current_user)):
+    if data.bet < 5: raise HTTPException(400, "Мин. ставка 5 💎")
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
+        if (await cur.fetchone())[0] < data.bet: raise HTTPException(400, "Мало кристаллов!")
+        crash = random.uniform(1.1, 5.0)
+        win = int(data.bet * crash)
+        await db.execute("UPDATE users SET crystals = crystals + ? WHERE id=?", (win - data.bet, user.get("id")))
+        await db.commit()
+    return {"crash": round(crash, 2), "win": win}
+
+@app.post("/api/games/case")
+async def game_case(user=Depends(current_user)):
+    cost = 20
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
+        if (await cur.fetchone())[0] < cost: raise HTTPException(400, "Мало кристаллов!")
+        await db.execute("UPDATE users SET crystals = crystals - ? WHERE id=?", (cost, user.get("id")))
+        prize = random.choice(["none", "crystals_10", "crystals_50", "frame_gold", "frame_fire"])
+        if prize == "crystals_10": await db.execute("UPDATE users SET crystals = crystals + 10 WHERE id=?", (user.get("id"),))
+        elif prize == "crystals_50": await db.execute("UPDATE users SET crystals = crystals + 50 WHERE id=?", (user.get("id"),))
+        elif prize == "frame_gold": await db.execute("UPDATE users SET frame='gold' WHERE id=?", (user.get("id"),))
+        elif prize == "frame_fire": await db.execute("UPDATE users SET frame='fire' WHERE id=?", (user.get("id"),))
+        await db.commit()
+    return {"prize": prize}
 
 # --- МАГАЗИН ---
 @app.post("/api/buy_frame")
@@ -291,7 +320,7 @@ async def buy_gift(data: GiftIn, user=Depends(current_user)):
         cur = await db.execute("SELECT crystals FROM users WHERE id=?", (user.get("id"),))
         if (await cur.fetchone())[0] < costs[data.gift]: raise HTTPException(400, "Мало кристаллов!")
         await db.execute("UPDATE users SET crystals = crystals - ? WHERE id=?", (costs[data.gift], user.get("id")))
-        await db.execute("INSERT INTO gifts(from_id, to_id, gift_name) VALUES (?, ?, ?)", (user.get("id"), data.to_id, data.gift))
+        await db.execute("INSERT INTO gifts(from_id, to_id, gift_name, description) VALUES (?, ?, ?, ?)", (user.get("id"), data.to_id, data.gift, data.description))
         await db.commit()
     return {"ok": True}
 
@@ -301,6 +330,7 @@ async def get_support():
         cur = await db.execute("SELECT value FROM settings WHERE key='support_link'")
         return {"link": (await cur.fetchone())[0]}
 
+# --- ФАЙЛЫ ---
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...), user=Depends(current_user)):
     content = await file.read()
@@ -331,6 +361,15 @@ async def get_sticker(file_id: str):
         path = r.json()["result"]["file_path"]
         img = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}")
     return StreamingResponse(iter([img.content]), media_type="image/webp")
+
+@app.get("/api/avatar/{file_id}")
+async def get_avatar(file_id: str):
+    async with httpx.AsyncClient() as c:
+        r = await c.get(f"{TG_API}/getFile?file_id={file_id}")
+        if not r.json().get("ok"): raise HTTPException(404)
+        path = r.json()["result"]["file_path"]
+        img = await c.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}")
+    return StreamingResponse(iter([img.content]), media_type="image/jpeg")
 
 @app.get("/api/settings")
 async def get_settings():

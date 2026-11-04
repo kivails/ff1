@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     bio TEXT DEFAULT '', custom_nick TEXT, theme TEXT DEFAULT 'default',
     crystals INTEGER DEFAULT 0, frame TEXT DEFAULT 'none', badge TEXT DEFAULT '',
     banner TEXT DEFAULT 'none',
+    avatar TEXT DEFAULT '',
     is_banned INTEGER DEFAULT 0, last_daily TIMESTAMP, last_roulette TIMESTAMP,
     referred_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -60,11 +61,23 @@ CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS tags (name TEXT PRIMARY KEY, color TEXT DEFAULT '#ffb7c5', posts_count INTEGER DEFAULT 0);
 """
 
+async def add_column_if_missing(db, table, column, col_type, default=None):
+    try:
+        await db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type} DEFAULT {default}" if default else f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+    except aiosqlite.OperationalError:
+        pass # Колонка уже существует
+
 async def init_db():
     async with aiosqlite.connect(DB) as db:
         await db.executescript(SCHEMA)
+        
+        # Миграции (добавляем недостающие колонки, если база старая)
+        await add_column_if_missing(db, "users", "avatar", "TEXT", "''")
+        await add_column_if_missing(db, "users", "banner", "TEXT", "'none'")
+        await add_column_if_missing(db, "users", "last_roulette", "TIMESTAMP", "NULL")
+        await add_column_if_missing(db, "posts", "is_anonymous", "INTEGER", "0")
+        
         await db.execute("INSERT OR IGNORE INTO tags(name) VALUES ('general'), ('anime'), ('news')")
         await db.execute("INSERT OR IGNORE INTO settings(key, value) VALUES ('playlist', '[]'), ('support_link', 'https://t.me/kvails')")
-        # Базовые баннеры
-        await db.execute("INSERT OR IGNORE INTO banners(name, price, image_url) VALUES ('Anime 1', 100, 'https://i.pinimg.com/736x/8b/1b/1b/8b1b1b8b1b1b8b1b1b8b1b1b8b1b1b.jpg')")
+        await db.execute("INSERT OR IGNORE INTO banners(name, price, image_url) VALUES ('Anime 1', 100, 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop')")
         await db.commit()

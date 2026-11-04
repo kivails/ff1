@@ -11,6 +11,7 @@ from auth import current_user
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 ADMIN_IDS = {5024935475}
 TG_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
+APP_URL = os.environ.get("APP_URL", "https://твой-сайт.onrender.com")
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])

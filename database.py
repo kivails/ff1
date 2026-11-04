@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS posts (
     title TEXT NOT NULL, body TEXT NOT NULL, tags TEXT DEFAULT 'general', 
     image_file_id TEXT, score INTEGER DEFAULT 0, views INTEGER DEFAULT 0, 
     is_hidden INTEGER DEFAULT 0, status TEXT DEFAULT 'approved', 
+    is_anonymous INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS comments (
@@ -48,6 +49,13 @@ CREATE TABLE IF NOT EXISTS achievements (
     user_id INTEGER NOT NULL, ach_name TEXT NOT NULL, 
     PRIMARY KEY(user_id, ach_name)
 );
+CREATE TABLE IF NOT EXISTS subscriptions (
+    user_id INTEGER NOT NULL, target_id INTEGER NOT NULL, 
+    PRIMARY KEY(user_id, target_id)
+);
+CREATE TABLE IF NOT EXISTS banners (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, price INTEGER NOT NULL, image_url TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS tags (name TEXT PRIMARY KEY, color TEXT DEFAULT '#ffb7c5', posts_count INTEGER DEFAULT 0);
 """
@@ -56,5 +64,7 @@ async def init_db():
     async with aiosqlite.connect(DB) as db:
         await db.executescript(SCHEMA)
         await db.execute("INSERT OR IGNORE INTO tags(name) VALUES ('general'), ('anime'), ('news')")
-        await db.execute("INSERT OR IGNORE INTO settings(key, value) VALUES ('playlist', '[]')")
+        await db.execute("INSERT OR IGNORE INTO settings(key, value) VALUES ('playlist', '[]'), ('support_link', 'https://t.me/kvails')")
+        # Базовые баннеры
+        await db.execute("INSERT OR IGNORE INTO banners(name, price, image_url) VALUES ('Anime 1', 100, 'https://i.pinimg.com/736x/8b/1b/1b/8b1b1b8b1b1b8b1b1b8b1b1b8b1b1b.jpg')")
         await db.commit()

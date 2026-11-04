@@ -33,11 +33,12 @@
   .frame-gold { border: 4px solid #ffd700; box-shadow: 0 0 15px #ffd700; }
   .frame-fire { border: 4px solid #ff4500; box-shadow: 0 0 15px #ff4500; }
   .frame-sakura { border: 4px solid #ffb7c5; box-shadow: 0 0 15px #ffb7c5; }
-  .frame-anime { border: 4px solid transparent; background: linear-gradient(45deg, #ff007f, #00f0ff) border-box; }
+  .frame-anime { border: 4px solid #ff007f; box-shadow: 0 0 20px #ff007f, 0 0 40px #00f0ff; }
   .frame-neon { border: 4px solid #00ffcc; box-shadow: 0 0 20px #00ffcc; }
   .level-bar { width: 100%; height: 10px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; margin-top: 8px; }
   .level-fill { height: 100%; background: var(--accent); width: 0%; }
   .loading { text-align: center; color: var(--accent); margin-top: 60px; font-size: 20px; font-weight: 800; }
+  .red-dot { width: 10px; height: 10px; background: red; border-radius: 50%; display: inline-block; margin-left: 4px; box-shadow: 0 0 10px red; }
 </style>
 </head>
 <body>
@@ -146,7 +147,7 @@
     const [profile, setProfile] = useState(null); const [editMode, setEditMode] = useState(false);
     const [nick, setNick] = useState(''); const [bio, setBio] = useState('');
     const [shopOpen, setShopOpen] = useState(false); const [bannerOpen, setBannerOpen] = useState(false);
-    const [giftTarget, setGiftTarget] = useState(''); const [giftType, setGiftType] = useState('heart');
+    const [giftTarget, setGiftTarget] = useState(''); const [giftType, setGiftType] = useState('heart'); const [giftDesc, setGiftDesc] = useState('');
     const [banners, setBanners] = useState([]);
 
     const load = () => api('/api/profile/' + (userId || ME.id)).then(p => { setProfile(p); setNick(p.custom_nick || ''); setBio(p.bio || ''); });
@@ -156,9 +157,9 @@
     const save = async () => { await api('/api/profile', { method:'POST', body: JSON.stringify({ custom_nick: nick, bio: bio }) }); setEditMode(false); load(); };
     const buyFrame = async (f) => { try { await api('/api/buy_frame?frame='+f, {method:'POST'}); alert('Куплено!'); load(); } catch(e) { alert(e.message); } };
     const buyBanner = async (bid) => { try { await api('/api/buy_banner?banner_id='+bid, {method:'POST'}); alert('Куплено!'); load(); } catch(e) { alert(e.message); } };
-    const buyGift = async () => { if(!giftTarget) return; try { await api('/api/buy_gift', { method:'POST', body: JSON.stringify({ to_id: parseInt(giftTarget), gift: giftType }) }); alert('Подарок отправлен!'); load(); } catch(e) { alert(e.message); } };
+    const buyGift = async () => { if(!giftTarget) return; try { await api('/api/buy_gift', { method:'POST', body: JSON.stringify({ to_id: parseInt(giftTarget), gift: giftType, description: giftDesc }) }); alert('Подарок отправлен!'); load(); } catch(e) { alert(e.message); } };
 
-    const avatarUrl = profile.avatar ? `/api/avatar/${profile.avatar}` : (userId === ME.id && ME.photo_url) ? ME.photo_url : `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.id}`;
+    const avatarUrl = profile.avatar ? `/api/avatar/${profile.avatar}` : `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.id}`;
     const refLink = `https://t.me/${tg.initDataUnsafe?.start_param ? 'bot' : 'bot'}?start=ref_${profile.id}`;
 
     return e('div', {className: `theme-${theme}`},
@@ -168,6 +169,7 @@
         e('img', { src: avatarUrl, className: 'frame-'+profile.frame, style: {width: 100, height: 100, borderRadius: '50%', background:'rgba(0,0,0,0.5)', objectFit: 'cover'} }),
         e('h2', { style: {color: 'var(--accent)', margin: '16px 0 4px'} }, `${profile.badge || ''} ${profile.custom_nick || profile.first_name}`),
         e('p', { className: 'hint' }, `@${profile.username || 'no_username'} · ID: ${profile.id}`),
+        e('p', { className: 'hint' }, `Был в сети: ${profile.last_seen ? timeMsk(profile.last_seen) : 'давно'}`),
         
         editMode ? e('div', {style: {marginTop:20}},
           e('input', { placeholder: 'Ник', value: nick, onChange: ev => setNick(ev.target.value) }),
@@ -176,7 +178,7 @@
         ) : e('div', {style: {marginTop:20}},
           e('p', { style: {fontStyle: 'italic', margin: '12px 0'} }, profile.bio || 'Тут пока пусто...'),
           isMe && e('button', { onClick: () => setEditMode(true), className: 'ghost', style: {width: '100%'} }, '✏️ Редактировать'),
-          !isMe && e('button', { onClick: async () => { await api('/api/subscribe', {method:'POST', body: JSON.stringify({target_id: profile.id})}); alert('Готово!'); load(); }, className: 'ghost', style: {width: '100%'} }, profile.is_subscribed ? '✓ Подписан' : '🔔 Подписаться')
+          !isMe && e('button', { onClick: async () => { await api('/api/subscribe', {method:'POST', body: JSON.stringify({target_id: profile.id})}); load(); }, className: 'ghost', style: {width: '100%'} }, profile.is_subscribed ? '✓ Подписан' : '🔔 Подписаться')
         ),
 
         e('div', { className: 'row between', style: {marginTop: 24, background: 'rgba(0,0,0,0.4)', padding: 12, borderRadius: 12} },
@@ -202,7 +204,10 @@
 
         e('div', {style:{marginTop:24}},
           e('div', {className:'hint', marginBottom:8}, '🎁 Подарки:'),
-          profile.gifts?.length ? profile.gifts.map((g, i) => e('div', {key: i, style:{margin:4}}, e('span', {className:'tag'}, `${g.name === 'heart' ? '💖' : g.name === 'star' ? '⭐' : '👑'} от @${g.from}`))) : e('span', {className:'hint'}, 'Пока нет')
+          profile.gifts?.length ? profile.gifts.map((g, i) => e('div', {key: i, style:{margin:4}},
+            e('span', {className:'tag'}, `${g.name === 'heart' ? '💖' : g.name === 'star' ? '⭐' : '👑'} от @${g.from}`),
+            g.desc && e('div', {className:'hint', style:{fontSize:10}}, g.desc)
+          )) : e('span', {className:'hint'}, 'Пока нет')
         ),
 
         isMe && e('div', {style:{marginTop:24}},
@@ -232,6 +237,7 @@
         isMe && e('div', {style:{marginTop:24, paddingTop:16, borderTop:'1px solid var(--border)'}},
           e('div', {className:'hint', marginBottom:8}, '🎁 Подарить (ID):'),
           e('input', { placeholder: 'ID', value: giftTarget, onChange: ev => setGiftTarget(ev.target.value) }),
+          e('input', { placeholder: 'Подпись', value: giftDesc, onChange: ev => setGiftDesc(ev.target.value) }),
           e('select', { value: giftType, onChange: ev => setGiftType(ev.target.value), style: {width: '100%', padding: 14, borderRadius: 12, background: 'rgba(0,0,0,0.4)', color: '#fff', marginBottom: 12} },
             e('option', {value: 'heart'}, '💖 Сердечко (10💎)'),
             e('option', {value: 'star'}, '⭐ Звезда (30💎)'),
@@ -239,6 +245,50 @@
           ),
           e('button', { onClick: buyGift, style: {width:'100%'} }, 'Отправить')
         )
+      )
+    );
+  }
+
+  function Games({ onBack, theme }) {
+    const [tab, setTab] = useState('roulette');
+    const [rouletteWin, setRouletteWin] = useState(null);
+    const [bet, setBet] = useState(10);
+    const [rocket, setRocket] = useState(null);
+    const [caseResult, setCaseResult] = useState(null);
+
+    const playRoulette = async () => { try { const r = await api('/api/games/roulette', {method:'POST'}); setRouletteWin(r.win); } catch(e) { alert(e.message); } };
+    const playRocket = async () => { try { const r = await api('/api/games/rocket', {method:'POST', body: JSON.stringify({bet})}); setRocket(r); } catch(e) { alert(e.message); } };
+    const playCase = async () => { try { const r = await api('/api/games/case', {method:'POST'}); setCaseResult(r.prize); } catch(e) { alert(e.message); } };
+
+    return e('div', {className: `theme-${theme}`},
+      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
+      e('h2', {style:{color:'var(--accent)'}}, '🎮 Игры'),
+      e('div', {className: 'row', style: {marginBottom: 16}},
+        e('button', { className: tab==='roulette' ? '' : 'ghost', onClick: () => setTab('roulette'), style: {flex:1} }, '🎰 Рулетка'),
+        e('button', { className: tab==='rocket' ? '' : 'ghost', onClick: () => setTab('rocket'), style: {flex:1} }, '🚀 Ракета'),
+        e('button', { className: tab==='case' ? '' : 'ghost', onClick: () => setTab('case'), style: {flex:1} }, '📦 Кейсы')
+      ),
+      tab === 'roulette' && e('div', {className: 'card'},
+        e('h3', null, '🎰 Бесплатная рулетка (раз в 24ч)'),
+        e('p', {className:'hint'}, 'Может выпасть 0, 1, 2, 5, 10 или 50 кристаллов.'),
+        e('button', { onClick: playRoulette, style: {width:'100%'} }, 'Крутить'),
+        rouletteWin !== null && e('h2', {style: {color:'var(--accent)', textAlign:'center', marginTop: 16}}, `Выигрыш: ${rouletteWin} 💎`)
+      ),
+      tab === 'rocket' && e('div', {className: 'card'},
+        e('h3', null, '🚀 Ракета'),
+        e('p', {className:'hint'}, 'Ставка растёт, но если не забрать — сгорит.'),
+        e('input', { type: 'number', placeholder: 'Ставка (мин. 5)', value: bet, onChange: ev => setBet(parseInt(ev.target.value) || 0) }),
+        e('button', { onClick: playRocket, style: {width:'100%'} }, 'Запустить'),
+        rocket && e('div', {style:{marginTop:16, textAlign:'center'}},
+          e('h2', {style: {color:'var(--accent)'}}, `x${rocket.crash}`),
+          e('p', null, `Выигрыш: ${rocket.win} 💎`)
+        )
+      ),
+      tab === 'case' && e('div', {className: 'card'},
+        e('h3', null, '📦 Кейс (20 💎)'),
+        e('p', {className:'hint'}, 'Внутри: кристаллы, рамки или ничего.'),
+        e('button', { onClick: playCase, style: {width:'100%'} }, 'Открыть'),
+        caseResult && e('h2', {style: {color:'var(--accent)', textAlign:'center', marginTop: 16}}, `Выпало: ${caseResult}`)
       )
     );
   }
@@ -311,6 +361,7 @@
     const [currentTrack, setCurrentTrack] = useState(0);
     const [searchTrack, setSearchTrack] = useState('');
     const [support, setSupport] = useState('https://t.me/kvails');
+    const [canRoulette, setCanRoulette] = useState(false);
 
     const reload = () => { api(`/api/posts?sort=${sort}${search ? `&q=${search}` : ''}`).then(d => setPosts(d.posts)); };
     useEffect(() => { reload(); }, [search, sort]);
@@ -329,9 +380,18 @@
     if (route.view === 'post') return e(PostView, { id: route.id, onBack: () => setRoute({view:'list'}), onProfile: id => setRoute({view:'profile', id}), theme });
     if (route.view === 'compose') return e(Compose, { onBack: () => setRoute({view:'list'}), onCreated: () => setRoute({view:'list'}), theme });
     if (route.view === 'settings') return e(Settings, { onBack: () => setRoute({view:'list'}), setTheme, currentTheme: theme, music, setMusic, playlist, currentTrack, setCurrentTrack, searchTrack, setSearchTrack, support });
+    if (route.view === 'games') return e(Games, { onBack: () => setRoute({view:'list'}), theme });
 
     return e('div', { className: `theme-${theme}` },
-      e('div', { className: 'row between', style: {marginBottom: 20} }, e('h1', { style: {margin: 0, color: '#fff', fontSize: 32}, onClick: reload }, '⛩️ RaReads'), e('button', { className: 'ghost', onClick: () => setRoute({view:'settings'}) }, '⚙️')),
+      e('div', { className: 'row between', style: {marginBottom: 20} },
+        e('h1', { style: {margin: 0, color: '#fff', fontSize: 32}, onClick: reload }, '⛩️ RaReads'),
+        e('div', {style: {display: 'flex', gap: 8}},
+          e('button', { className: 'ghost', onClick: () => setRoute({view:'games'}), style: {position:'relative'} },
+            '🎮', canRoulette && e('span', {className: 'red-dot'})
+          ),
+          e('button', { className: 'ghost', onClick: () => setRoute({view:'settings'}) }, '⚙️')
+        )
+      ),
       e('input', { placeholder: '🔍 Поиск по тегу...', value: search, onChange: ev => setSearch(ev.target.value) }),
       e('div', { className: 'row', style: {marginBottom: 20} },
         e('button', { className: sort === 'new' ? '' : 'ghost', onClick: () => setSort('new'), style: {flex: 1} }, '🆕 Недавнее'),

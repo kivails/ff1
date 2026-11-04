@@ -7,20 +7,40 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Pacifico&family=Caveat:wght@700&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root { --bg-img: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop'); --text: #f0f0f0; --accent: #ffb7c5; --glass: rgba(20, 20, 30, 0.7); --border: rgba(255,255,255,0.1); }
-  .theme-sakura { --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000'); --text: #fff0f5; --accent: #ff8da1; --glass: rgba(45, 27, 46, 0.7); }
-  .theme-sunset { --bg-img: url('https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000'); --text: #ffebd6; --accent: #ff9a76; --glass: rgba(50, 20, 10, 0.7); }
-  .theme-cyber { --bg-img: url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=1000'); --text: #e0ffe0; --accent: #00ffcc; --glass: rgba(5, 10, 10, 0.8); }
-  .theme-space { --bg-img: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000'); --text: #e0e5ff; --accent: #9bb7ff; --glass: rgba(10, 15, 30, 0.8); }
+  :root {
+    --bg-img: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop');
+    --text: #f0f0f0; --accent: #ffb7c5; --glass: rgba(20, 20, 30, 0.7); --border: rgba(255,255,255,0.1);
+    --pattern: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
+  }
+  .theme-sakura {
+    --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000');
+    --text: #fff0f5; --accent: #ff8da1; --glass: rgba(45, 27, 46, 0.7);
+    --pattern: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
+  }
+  .theme-sunset {
+    --bg-img: url('https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000');
+    --text: #ffebd6; --accent: #ff9a76; --glass: rgba(50, 20, 10, 0.7);
+    --pattern: url('https://www.transparenttextures.com/patterns/cubes.png');
+  }
+  .theme-cyber {
+    --bg-img: url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=1000');
+    --text: #e0ffe0; --accent: #00ffcc; --glass: rgba(5, 10, 10, 0.8);
+    --pattern: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+  }
+  .theme-space {
+    --bg-img: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000');
+    --text: #e0e5ff; --accent: #9bb7ff; --glass: rgba(10, 15, 30, 0.8);
+    --pattern: url('https://www.transparenttextures.com/patterns/stardust.png');
+  }
   * { box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
   body { margin: 0; padding: 16px; padding-bottom: 100px; background: var(--bg-img) center/cover no-repeat fixed; color: var(--text); min-height: 100vh; transition: background 0.4s, color 0.4s; }
   body::before { content: ''; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: -1; }
   h1, h2, h3 { font-family: 'Pacifico', cursive; font-weight: 400; }
   .card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 16px; }
   .row { display: flex; align-items: center; gap: 12px; } .between { justify-content: space-between; }
-  .hint { color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 700; }
+  .hint { color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 700; } 
   .title { font-weight: 800; font-size: 20px; margin: 10px 0; }
   button { background: var(--accent); color: #111; border: none; border-radius: 12px; padding: 12px 20px; font-weight: 800; cursor: pointer; }
   button.ghost { background: rgba(0,0,0,0.3); color: var(--accent); border: 1px solid var(--accent); }
@@ -30,11 +50,6 @@
   .fab-profile { position: fixed; left: 20px; bottom: 30px; width: 64px; height: 64px; border-radius: 50%; font-size: 24px; z-index: 10; display: flex; align-items: center; justify-content: center; background: var(--glass); border: 2px solid var(--accent); color: var(--accent); }
   .reaction-btn { background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 20px; padding: 6px 10px; font-size: 16px; cursor: pointer; color: var(--text); }
   .reaction-btn.active { background: var(--accent); color: #111; border-color: var(--accent); }
-  .frame-gold { border: 4px solid #ffd700; box-shadow: 0 0 15px #ffd700; }
-  .frame-fire { border: 4px solid #ff4500; box-shadow: 0 0 15px #ff4500; }
-  .frame-sakura { border: 4px solid #ffb7c5; box-shadow: 0 0 15px #ffb7c5; }
-  .frame-anime { border: 4px solid #ff007f; box-shadow: 0 0 20px #ff007f, 0 0 40px #00f0ff; }
-  .frame-neon { border: 4px solid #00ffcc; box-shadow: 0 0 20px #00ffcc; }
   .level-bar { width: 100%; height: 10px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; margin-top: 8px; }
   .level-fill { height: 100%; background: var(--accent); width: 0%; }
   .loading { text-align: center; color: var(--accent); margin-top: 60px; font-size: 20px; font-weight: 800; }
@@ -43,11 +58,71 @@
   .status-offline { color: #888; font-weight: 700; }
   .status-banned { color: #ff4444; font-weight: 700; }
   .status-frozen { color: #00f0ff; font-weight: 700; }
-  .style-glow { text-shadow: 0 0 10px var(--accent); }
-  .style-paper { background: rgba(255,255,255,0.05); border-left: 4px solid var(--accent); padding-left: 12px; }
-  .style-dark { background: rgba(0,0,0,0.5); border-radius: 12px; padding: 12px; }
-  .roulette-wheel { width: 200px; height: 200px; border-radius: 50%; background: conic-gradient(#ff007f, #00f0ff, #ffd700, #ff4500, #ff007f); margin: 20px auto; display: flex; align-items: center; justify-content: center; font-size: 48px; transition: transform 2s; }
-  .rocket-visual { font-size: 80px; text-align: center; margin: 20px 0; transition: transform 0.1s; }
+
+  /* НОВЫЕ РАМКИ (с картинками-паттернами) */
+  .frame-none { border: none; }
+  .frame-gold { border: 4px solid #ffd700; box-shadow: 0 0 15px #ffd700, inset 0 0 20px #ffd70088; }
+  .frame-fire { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ff4500, #ff8c00, #ff4500) border-box; box-shadow: 0 0 20px #ff4500; }
+  .frame-sakura { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ffb7c5, #ff69b4, #ffb7c5) border-box; box-shadow: 0 0 20px #ffb7c5; }
+  .frame-anime { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ff007f, #00f0ff, #ff007f) border-box; box-shadow: 0 0 25px #ff007f, 0 0 40px #00f0ff; }
+  .frame-neon { border: 4px solid #00ffcc; box-shadow: 0 0 20px #00ffcc, inset 0 0 15px #00ffcc88; }
+  .frame-galaxy { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=200') border-box; background-size: cover; box-shadow: 0 0 20px #9bb7ff; }
+  .frame-stars { border: 4px solid #fff; box-shadow: 0 0 15px #fff, 0 0 30px #ffd700, inset 0 0 10px #fff; }
+  .frame-rainbow { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet) border-box; animation: rainbow-shift 3s linear infinite; }
+  @keyframes rainbow-shift { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
+
+  /* УЗОР ПРОФИЛЯ (полупрозрачный паттерн на фоне) */
+  .profile-pattern {
+    position: relative; border-radius: 20px; overflow: hidden;
+  }
+  .profile-pattern::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: var(--pattern); background-size: 200px;
+    opacity: 0.08; pointer-events: none; z-index: 0;
+  }
+  .profile-pattern > * { position: relative; z-index: 1; }
+
+  /* СТИЛИ ПОСТА (только шрифт) */
+  .post-style-default { font-family: 'Montserrat', sans-serif; }
+  .post-style-handwriting { font-family: 'Caveat', cursive; font-size: 22px; }
+  .post-style-pixel { font-family: 'Press Start 2P', cursive; font-size: 12px; line-height: 1.8; }
+  .post-style-elegant { font-family: 'Pacifico', cursive; }
+
+  /* РУЛЕТКА-КОЛЕСО */
+  .roulette-container { position: relative; width: 260px; height: 260px; margin: 20px auto; }
+  .roulette-wheel {
+    width: 260px; height: 260px; border-radius: 50%;
+    background: conic-gradient(
+      #ff007f 0deg 36deg, #00f0ff 36deg 72deg, #ffd700 72deg 108deg,
+      #ff4500 108deg 144deg, #9bb7ff 144deg 180deg, #00ff88 180deg 216deg,
+      #ff69b4 216deg 252deg, #8a2be2 252deg 288deg, #ffa500 288deg 324deg,
+      #00ced1 324deg 360deg
+    );
+    transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+    box-shadow: 0 0 30px rgba(255,255,255,0.3);
+  }
+  .roulette-arrow {
+    position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+    font-size: 30px; color: #fff; text-shadow: 0 0 10px #000; z-index: 2;
+  }
+  .roulette-labels { position: absolute; inset: 0; pointer-events: none; }
+  .roulette-label {
+    position: absolute; left: 50%; top: 50%; transform-origin: 0 0;
+    font-size: 11px; font-weight: 900; color: #fff; text-shadow: 0 0 3px #000;
+  }
+
+  /* РАКЕТА */
+  .rocket-track { position: relative; height: 300px; background: linear-gradient(to top, #000033, #000066); border-radius: 16px; overflow: hidden; margin: 16px 0; }
+  .rocket-icon { position: absolute; font-size: 40px; transition: bottom 0.1s linear; left: 50%; transform: translateX(-50%); }
+  .rocket-stars { position: absolute; inset: 0; background-image: radial-gradient(white 1px, transparent 1px); background-size: 30px 30px; opacity: 0.3; }
+
+  /* КЕЙСЫ */
+  .case-track { position: relative; height: 80px; background: rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; margin: 16px 0; }
+  .case-items { display: flex; transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
+  .case-item { min-width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 32px; border-right: 1px solid rgba(255,255,255,0.1); }
+  .case-arrow { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; background: red; box-shadow: 0 0 10px red; z-index: 2; }
+
+  .game-font { font-family: 'Press Start 2P', cursive; }
 </style>
 </head>
 <body>
@@ -57,7 +132,7 @@
   const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
   const INIT = tg.initData; const ME = tg.initDataUnsafe?.user || {};
   if (!INIT) document.body.innerHTML = '<div style="color:red;text-align:center;margin-top:50px">Открой через Telegram!</div>';
-  const { useState, useEffect, createElement: e } = React;
+  const { useState, useEffect, useRef, createElement: e } = React;
 
   async function api(path, opts = {}) {
     const r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', 'X-Init-Data': INIT, ...(opts.headers||{}) } });
@@ -86,8 +161,7 @@
     if (diff < 86400) return { text: `${Math.floor(diff/3600)} ч назад`, cls: 'status-offline' };
     return { text: `${Math.floor(diff/86400)} дн назад`, cls: 'status-offline' };
   }
-
-  function CommentItem({ c, onProfile, postAuthorId, onReply }) {
+    function CommentItem({ c, onProfile, postAuthorId, onReply }) {
     const react = async (emoji) => { await api('/api/react', { method:'POST', body: JSON.stringify({ target_type: 'comment', target_id: c.id, emoji }) }); };
     const vote = async (val) => { await api('/api/vote', { method:'POST', body: JSON.stringify({ target_type: 'comment', target_id: c.id, value: val }) }); };
     const bodyHtml = c.body.replace(/\[sticker\](.*?)\[\/sticker\]/g, (m, fid) => `<br><img src="/api/sticker/${fid}" style="width:100px;height:100px;border-radius:12px;margin-top:8px;">`);
@@ -142,11 +216,13 @@
     const vote = async (val) => { try { await api('/api/vote', { method:'POST', body: JSON.stringify({ target_type: 'post', target_id: id, value: val }) }); load(); } catch(err) { alert(err.message); } };
     const del = async () => { if(confirm('Удалить?')) { await api('/api/posts/' + id, { method: 'DELETE' }); onBack(); } };
     const share = async () => {
-      const r = await api('/api/share', {method:'POST', body: JSON.stringify({post_id: id})});
-      tg.shareMessage?.(r.url) || alert(`Ссылка: ${r.url}`);
+      try {
+        const r = await api('/api/share', {method:'POST', body: JSON.stringify({post_id: id})});
+        if (tg.shareMessage) { tg.shareMessage(r.url); } else { alert('Ссылка: ' + r.url); }
+      } catch(err) { alert(err.message); }
     };
 
-    const styleClass = post.style === 'glow' ? 'style-glow' : post.style === 'paper' ? 'style-paper' : post.style === 'dark' ? 'style-dark' : '';
+    const styleClass = post.style === 'handwriting' ? 'post-style-handwriting' : post.style === 'pixel' ? 'post-style-pixel' : post.style === 'elegant' ? 'post-style-elegant' : 'post-style-default';
 
     return e('div', {className: `theme-${theme}`},
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
@@ -169,7 +245,7 @@
         ),
         e('div', { className: 'row', style: {marginTop: 16, gap: 8} },
           e('button', { className: 'ghost', onClick: share }, '🔗 Поделиться'),
-          (post.author_id === ME.id || ME.id === 5024935475) && e('button', { className: 'ghost', onClick: del, style: {color: 'red', borderColor: 'red'} }, '🗑')
+          (post.author_id === ME.id || ME.id === 5024935475) && e('button', { className: 'ghost', onClick: del, style: {color: 'red', borderColor: 'red'} }, '🗑 Удалить')
         )
       ),
       e('h3', { style: {color: 'var(--accent)'} }, '💬 Комментарии'),
@@ -188,26 +264,44 @@
     const [profile, setProfile] = useState(null); const [editMode, setEditMode] = useState(false);
     const [nick, setNick] = useState(''); const [bio, setBio] = useState('');
     const [shopOpen, setShopOpen] = useState(false); const [bannerOpen, setBannerOpen] = useState(false);
+    const [bannerIndex, setBannerIndex] = useState(0);
     const [giftTarget, setGiftTarget] = useState(''); const [giftType, setGiftType] = useState('heart'); const [giftDesc, setGiftDesc] = useState('');
     const [banners, setBanners] = useState([]);
+    const [ownedFrames, setOwnedFrames] = useState([]);
 
-    const load = () => api('/api/profile/' + (userId || ME.id)).then(p => { setProfile(p); setNick(p.custom_nick || ''); setBio(p.bio || ''); });
+    const load = () => api('/api/profile/' + (userId || ME.id)).then(p => { 
+      setProfile(p); setNick(p.custom_nick || ''); setBio(p.bio || ''); 
+      setOwnedFrames((p.owned_frames || '').split(',').filter(Boolean));
+    });
     useEffect(() => { load(); api('/api/banners').then(setBanners); }, [userId]);
     if (!profile) return e('div', {className:'loading'}, 'Загрузка...');
     const isMe = profile.id === ME.id;
     const save = async () => { await api('/api/profile', { method:'POST', body: JSON.stringify({ custom_nick: nick, bio: bio }) }); setEditMode(false); load(); };
-    const buyFrame = async (f) => { try { await api('/api/buy_frame?frame='+f, {method:'POST'}); alert('Куплено!'); load(); } catch(err) { alert(err.message); } };
-    const buyBanner = async (bid) => { try { await api('/api/buy_banner?banner_id='+bid, {method:'POST'}); alert('Куплено!'); load(); } catch(err) { alert(err.message); } };
+    const buyFrame = async (f) => { try { await api('/api/buy_frame?frame='+f, {method:'POST'}); load(); } catch(err) { alert(err.message); } };
+    const equipFrame = async (f) => { try { await api('/api/equip_frame?frame='+f, {method:'POST'}); load(); } catch(err) { alert(err.message); } };
+    const buyBanner = async (bid) => { try { await api('/api/buy_banner?banner_id='+bid, {method:'POST'}); load(); } catch(err) { alert(err.message); } };
     const buyGift = async () => { if(!giftTarget) return; try { await api('/api/buy_gift', { method:'POST', body: JSON.stringify({ to_id: parseInt(giftTarget), gift: giftType, description: giftDesc }) }); alert('Подарок отправлен!'); load(); } catch(err) { alert(err.message); } };
 
     const avatarUrl = profile.avatar ? `/api/avatar/${profile.avatar}` : `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.id}`;
     const refLink = `https://t.me/${tg.initDataUnsafe?.start_param ? 'bot' : 'bot'}?start=ref_${profile.id}`;
     const st = statusInfo(profile.last_seen, profile.is_banned, profile.is_frozen);
+    const currentBanner = banners[bannerIndex];
+
+    const frameList = [
+      { key: 'gold', name: '🥇 Золото', price: 50 },
+      { key: 'fire', name: '🔥 Огонь', price: 100 },
+      { key: 'sakura', name: '🌸 Сакура', price: 150 },
+      { key: 'anime', name: '🎨 Аниме', price: 200 },
+      { key: 'neon', name: '💡 Неон', price: 250 },
+      { key: 'galaxy', name: '🌌 Галактика', price: 300 },
+      { key: 'stars', name: '⭐ Звёзды', price: 350 },
+      { key: 'rainbow', name: '🌈 Радуга', price: 400 },
+    ];
 
     return e('div', {className: `theme-${theme}`},
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
       profile.banner && profile.banner !== 'none' && e('img', { src: profile.banner, style: {width: '100%', borderRadius: 12, marginBottom: 8} }),
-      e('div', { className: 'card', style: {textAlign: 'center'} },
+      e('div', { className: 'card profile-pattern', style: {textAlign: 'center'} },
         e('img', { src: avatarUrl, className: 'frame-'+profile.frame, style: {width: 100, height: 100, borderRadius: '50%', background:'rgba(0,0,0,0.5)', objectFit: 'cover'} }),
         e('h2', { style: {color: 'var(--accent)', margin: '16px 0 4px'} }, `${profile.badge || ''} ${profile.custom_nick || profile.first_name}`),
         e('p', { className: 'hint' }, `@${profile.username || 'no_username'} · ID: ${profile.id}`),
@@ -256,20 +350,29 @@
         isMe && e('div', {style:{marginTop:24}},
           e('button', { className: 'ghost', onClick: () => setShopOpen(!shopOpen), style:{width:'100%'} }, '🛍️ Магазин рамок'),
           shopOpen && e('div', {style:{marginTop:12, display:'flex', flexDirection:'column', gap:8}},
-            e('button', { className: 'ghost', onClick: () => buyFrame('gold') }, '🥇 Золото (50 💎)'),
-            e('button', { className: 'ghost', onClick: () => buyFrame('fire') }, '🔥 Огонь (100 💎)'),
-            e('button', { className: 'ghost', onClick: () => buyFrame('sakura') }, '🌸 Сакура (150 💎)'),
-            e('button', { className: 'ghost', onClick: () => buyFrame('anime') }, '🎨 Аниме (200 💎)'),
-            e('button', { className: 'ghost', onClick: () => buyFrame('neon') }, '💡 Неон (250 💎)')
+            frameList.map(f => {
+              const owned = ownedFrames.includes(f.key);
+              return e('button', {
+                key: f.key,
+                className: 'ghost',
+                onClick: () => owned ? equipFrame(f.key) : buyFrame(f.key),
+                style: {width: '100%', opacity: owned && profile.frame !== f.key ? 0.7 : 1}
+              }, owned ? (profile.frame === f.key ? `✓ ${f.name} (надето)` : `✓ ${f.name} — надеть`) : `${f.name} — ${f.price} 💎`);
+            })
           )
         ),
 
         isMe && e('div', {style:{marginTop:24}},
           e('button', { className: 'ghost', onClick: () => setBannerOpen(!bannerOpen), style:{width:'100%'} }, '🖼️ Баннеры'),
-          bannerOpen && banners.map(b => e('div', {key: b.id, style:{marginTop:12}},
-            e('img', { src: b.image_url, style: {width:'100%', borderRadius:12, marginBottom:4} }),
-            e('button', { className: 'ghost', onClick: () => buyBanner(b.id), style: {width: '100%'} }, `${b.name} (${b.price} 💎)`)
-          ))
+          bannerOpen && currentBanner && e('div', {style:{marginTop:12, textAlign:'center'}},
+            e('img', { src: currentBanner.image_url, style: {width:'100%', borderRadius:12, marginBottom:8} }),
+            e('div', {className: 'row between'},
+              e('button', { className: 'ghost', onClick: () => setBannerIndex((bannerIndex - 1 + banners.length) % banners.length) }, '←'),
+              e('span', {className: 'hint'}, `${currentBanner.name} · ${currentBanner.price} 💎`),
+              e('button', { className: 'ghost', onClick: () => setBannerIndex((bannerIndex + 1) % banners.length) }, '→')
+            ),
+            e('button', { onClick: () => buyBanner(currentBanner.id), style: {width: '100%', marginTop: 8} }, 'Купить и надеть')
+          )
         ),
 
         isMe && e('div', {style:{marginTop:16, padding:12, background:'rgba(0,0,0,0.4)', borderRadius:12}},
@@ -293,8 +396,9 @@
       )
     );
   }
-  function Games({ onBack, theme }) {
+    function Games({ onBack, theme }) {
     const [tab, setTab] = useState('roulette');
+    const [rotation, setRotation] = useState(0);
     const [spinning, setSpinning] = useState(false);
     const [rouletteWin, setRouletteWin] = useState(null);
     const [bet, setBet] = useState(10);
@@ -302,94 +406,154 @@
     const [rocketMultiplier, setRocketMultiplier] = useState(1.0);
     const [rocketCrashed, setRocketCrashed] = useState(false);
     const [rocketWon, setRocketWon] = useState(null);
+    const [rocketHistory, setRocketHistory] = useState([]);
+    const [caseOpen, setCaseOpen] = useState(false);
     const [caseResult, setCaseResult] = useState(null);
+    const [caseOffset, setCaseOffset] = useState(0);
+    const rocketTimer = useRef(null);
 
-    useEffect(() => {
-      let timer;
-      if (rocketActive && !rocketCrashed) {
-        timer = setInterval(() => {
-          setRocketMultiplier(prev => {
-            const next = prev + 0.05;
-            const crashPoint = 1.1 + Math.random() * 3.9;
-            if (next >= crashPoint) {
-              setRocketCrashed(true);
-              setRocketActive(false);
-              setRocketWon(-bet);
-              return next;
-            }
-            return next;
-          });
-        }, 200);
-      }
-      return () => clearInterval(timer);
-    }, [rocketActive, rocketCrashed, bet]);
+    // Рулетка с 10 секторами
+    const sectors = ['0', '1', '2', '5', '10', '0', '2', '5', '50', '1'];
+    const sectorColors = ['#ff007f', '#00f0ff', '#ffd700', '#ff4500', '#9bb7ff', '#00ff88', '#ff69b4', '#8a2be2', '#ffa500', '#00ced1'];
+    const sectorAngle = 360 / sectors.length;
 
     const playRoulette = async () => {
+      if (spinning) return;
       setSpinning(true);
       try {
         const r = await api('/api/games/roulette', {method:'POST'});
-        setTimeout(() => { setRouletteWin(r.win); setSpinning(false); }, 2000);
+        // Ищем, в каком секторе наш выигрыш
+        let idx = sectors.indexOf(String(r.win));
+        if (idx === -1) idx = 0;
+        // Крутим на 5 полных оборотов + нужный угол
+        const targetAngle = 360 * 5 + (360 - idx * sectorAngle - sectorAngle / 2);
+        setRotation(targetAngle);
+        setTimeout(() => { setRouletteWin(r.win); setSpinning(false); }, 3100);
       } catch(err) { alert(err.message); setSpinning(false); }
     };
 
+    // Ракета: начинается с 1.00, +0.01 каждые 100мс, падает в рандомный момент от 1.01 до 90 (чаще 1.9)
     const startRocket = async () => {
       setRocketMultiplier(1.0);
       setRocketCrashed(false);
       setRocketWon(null);
       setRocketActive(true);
+      // Определяем точку падения (чаще 1.9)
+      let crashPoint;
+      if (Math.random() < 0.7) crashPoint = 1.1 + Math.random() * 2.0; // 70% — до 3.1
+      else crashPoint = 3.1 + Math.random() * 86.9; // 30% — до 90
+      
+      let current = 1.0;
+      rocketTimer.current = setInterval(() => {
+        current += 0.01;
+        setRocketMultiplier(current);
+        if (current >= crashPoint) {
+          clearInterval(rocketTimer.current);
+          setRocketCrashed(true);
+          setRocketActive(false);
+          setRocketWon(-bet);
+          setRocketHistory(prev => [crashPoint.toFixed(2), ...prev].slice(0, 5));
+        }
+      }, 100);
     };
 
     const cashOut = async () => {
       if (!rocketActive) return;
+      clearInterval(rocketTimer.current);
       setRocketActive(false);
       try {
         const r = await api('/api/games/rocket', {method:'POST', body: JSON.stringify({bet})});
         setRocketWon(r.win);
+        setRocketHistory(prev => [rocketMultiplier.toFixed(2), ...prev].slice(0, 5));
       } catch(err) { alert(err.message); }
     };
 
+    // Кейс: анимация с вариантами
+    const casePrizes = ['💎', '⭐', '🔥', '👑', '🎁', '💖', '🌹', '💠', '❌'];
     const playCase = async () => {
+      if (caseOpen) return;
+      setCaseOpen(true);
+      setCaseResult(null);
       try {
         const r = await api('/api/games/case', {method:'POST'});
-        setCaseResult(r.prize);
-      } catch(err) { alert(err.message); }
+        // Анимация: крутим на случайное расстояние
+        const randomOffset = 500 + Math.random() * 1000;
+        setCaseOffset(randomOffset);
+        setTimeout(() => { 
+          setCaseResult(r.prize); 
+          setCaseOpen(false); 
+          setCaseOffset(0);
+        }, 3100);
+      } catch(err) { alert(err.message); setCaseOpen(false); }
     };
 
-    return e('div', {className: `theme-${theme}`},
+    useEffect(() => {
+      return () => { if (rocketTimer.current) clearInterval(rocketTimer.current); };
+    }, []);
+
+    return e('div', {className: `theme-${theme} game-font`},
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
       e('h2', {style:{color:'var(--accent)'}}, '🎮 Игры'),
       e('div', {className: 'row', style: {marginBottom: 16}},
         e('button', { className: tab==='roulette' ? '' : 'ghost', onClick: () => setTab('roulette'), style: {flex:1} }, '🎰 Рулетка'),
         e('button', { className: tab==='rocket' ? '' : 'ghost', onClick: () => setTab('rocket'), style: {flex:1} }, '🚀 Ракета'),
-        e('button', { className: tab==='case' ? '' : 'ghost', onClick: () => setTab('case'), style: {flex:1} }, '📦 Кейсы')
+        e('button', { className: tab==='case' ? '' : 'ghost', onClick: () => setTab('case'), style: {flex:1} }, '📦 Кейс')
       ),
+
       tab === 'roulette' && e('div', {className: 'card'},
-        e('h3', null, '🎰 Бесплатная рулетка (раз в 24ч)'),
-        e('div', {className: 'roulette-wheel', style: {transform: spinning ? 'rotate(1440deg)' : 'none'}}, '🎰'),
-        e('button', { onClick: playRoulette, style: {width:'100%'}, disabled: spinning }, spinning ? 'Крутится...' : 'Крутить'),
-        rouletteWin !== null && e('h2', {style: {color:'var(--accent)', textAlign:'center', marginTop: 16}}, `Выигрыш: ${rouletteWin} 💎`)
+        e('h3', {style:{fontFamily: 'Montserrat'}}, '🎰 Бесплатная рулетка (раз в 24ч)'),
+        e('div', {className: 'roulette-container'},
+          e('div', {className: 'roulette-arrow'}, '▼'),
+          e('div', {
+            className: 'roulette-wheel',
+            style: {transform: `rotate(${rotation}deg)`}
+          }),
+          e('div', {className: 'roulette-labels'},
+            sectors.map((s, i) => e('div', {
+              key: i,
+              className: 'roulette-label',
+              style: {
+                transform: `rotate(${i * sectorAngle + sectorAngle / 2}deg) translate(90px) rotate(-${i * sectorAngle + sectorAngle / 2}deg)`,
+                width: 30, textAlign: 'center'
+              }
+            }, s))
+          )
+        ),
+        e('button', { onClick: playRoulette, style: {width:'100%', marginTop: 20}, disabled: spinning }, spinning ? 'Крутится...' : 'Крутить'),
+        rouletteWin !== null && e('h2', {style: {color:'var(--accent)', textAlign:'center', marginTop: 16, fontFamily: 'Montserrat'}}, `Выигрыш: ${rouletteWin} 💎`)
       ),
+
       tab === 'rocket' && e('div', {className: 'card'},
-        e('h3', null, '🚀 Ракета'),
-        e('p', {className:'hint'}, 'Ставка растёт. Успей забрать, пока ракета не взорвалась!'),
-        e('div', {className: 'rocket-visual', style: {transform: `translateY(-${(rocketMultiplier - 1) * 100}px)`}}, rocketCrashed ? '💥' : '🚀'),
-        e('h2', {style: {textAlign:'center', color:'var(--accent)'}}, `x${rocketMultiplier.toFixed(2)}`),
+        e('h3', {style:{fontFamily: 'Montserrat'}}, '🚀 Ракета'),
+        e('div', {className: 'rocket-track'},
+          e('div', {className: 'rocket-stars'}),
+          e('div', {className: 'rocket-icon', style: {bottom: `${Math.min((rocketMultiplier - 1) * 8, 85)}%`}}, rocketCrashed ? '💥' : '🚀')
+        ),
+        e('h2', {style: {textAlign:'center', color:'var(--accent)', fontFamily: 'Montserrat'}}, `x${rocketMultiplier.toFixed(2)}`),
+        e('div', {className: 'row', style: {justifyContent: 'center', gap: 8, marginBottom: 12}},
+          rocketHistory.map((h, i) => e('span', {key: i, className: 'tag', style: {fontSize: 11}}, `x${h}`))
+        ),
         !rocketActive && !rocketCrashed && e('div', null,
           e('input', { type: 'number', placeholder: 'Ставка (мин. 5)', value: bet, onChange: ev => setBet(parseInt(ev.target.value) || 0) }),
           e('button', { onClick: startRocket, style: {width:'100%'} }, 'Запустить')
         ),
-        rocketActive && e('button', { onClick: cashOut, style: {width:'100%'} }, `Забрать ${(bet * rocketMultiplier).toFixed(0)} 💎`),
+        rocketActive && e('button', { onClick: cashOut, style: {width:'100%'}}, `Забрать ${(bet * rocketMultiplier).toFixed(0)} 💎`),
         rocketCrashed && e('div', {style: {textAlign:'center'}},
           e('p', {style: {color:'red', fontWeight: 800}}, 'Взрыв! Ставка сгорела.'),
-          e('button', { onClick: () => { setRocketCrashed(false); setRocketMultiplier(1.0); }, style: {width:'100%'} }, 'Ещё раз')
-        ),
-        rocketWon !== null && !rocketCrashed && e('p', {style: {color:'var(--accent)', textAlign:'center'}}, `Выигрыш: ${rocketWon} 💎`)
+          e('button', { onClick: () => { setRocketCrashed(false); setRocketMultiplier(1.0); setRocketWon(null); }, style: {width:'100%'} }, 'Ещё раз')
+        )
       ),
+
       tab === 'case' && e('div', {className: 'card'},
-        e('h3', null, '📦 Кейс (20 💎)'),
-        e('p', {className:'hint'}, 'Внутри: кристаллы, рамки или ничего.'),
-        e('button', { onClick: playCase, style: {width:'100%'} }, 'Открыть'),
-        caseResult && e('h2', {style: {color:'var(--accent)', textAlign:'center', marginTop: 16}}, `Выпало: ${caseResult}`)
+        e('h3', {style:{fontFamily: 'Montserrat'}}, '📦 Кейс (20 💎)'),
+        e('div', {className: 'case-track'},
+          e('div', {className: 'case-arrow'}),
+          e('div', {className: 'case-items', style: {transform: `translateX(-${caseOffset}px)`}},
+            Array.from({length: 30}).map((_, i) => e('div', {key: i, className: 'case-item'}, casePrizes[i % casePrizes.length]))
+          )
+        ),
+        e('button', { onClick: playCase, style: {width:'100%'}, disabled: caseOpen }, caseOpen ? 'Открывается...' : 'Открыть'),
+        caseResult && e('h2', {style: {color:'var(--accent)', textAlign:'center', marginTop: 16, fontFamily: 'Montserrat'}}, `Выпало: ${caseResult}`)
       )
     );
   }
@@ -457,10 +621,10 @@
       e('textarea', { rows: 6, placeholder: 'Текст...', value: body, onChange: ev => setBody(ev.target.value) }),
       e('input', { type: 'file', accept: 'image/*,image/gif', onChange: ev => setFile(ev.target.files[0]), style:{color:'#fff'} }),
       e('select', { value: style, onChange: ev => setStyle(ev.target.value), style: {width: '100%', padding: 14, borderRadius: 12, background: 'rgba(0,0,0,0.4)', color: '#fff', marginBottom: 12} },
-        e('option', {value: 'default'}, 'Обычный стиль'),
-        e('option', {value: 'glow'}, 'Светящийся текст'),
-        e('option', {value: 'paper'}, 'Стиль бумаги'),
-        e('option', {value: 'dark'}, 'Тёмный блок')
+        e('option', {value: 'default'}, 'Обычный шрифт'),
+        e('option', {value: 'handwriting'}, 'Рукописный'),
+        e('option', {value: 'pixel'}, 'Пиксельный'),
+        e('option', {value: 'elegant'}, 'Элегантный')
       ),
       e('input', { placeholder: 'ID пользователя для упоминания', value: mentioned, onChange: ev => setMentioned(ev.target.value) }),
       e('label', {style: {display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8}},

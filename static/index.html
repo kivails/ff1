@@ -14,26 +14,10 @@
     --text: #f0f0f0; --accent: #ffb7c5; --glass: rgba(20, 20, 30, 0.7); --border: rgba(255,255,255,0.1);
     --pattern: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
   }
-  .theme-sakura {
-    --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000');
-    --text: #fff0f5; --accent: #ff8da1; --glass: rgba(45, 27, 46, 0.7);
-    --pattern: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
-  }
-  .theme-sunset {
-    --bg-img: url('https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000');
-    --text: #ffebd6; --accent: #ff9a76; --glass: rgba(50, 20, 10, 0.7);
-    --pattern: url('https://www.transparenttextures.com/patterns/cubes.png');
-  }
-  .theme-cyber {
-    --bg-img: url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=1000');
-    --text: #e0ffe0; --accent: #00ffcc; --glass: rgba(5, 10, 10, 0.8);
-    --pattern: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-  }
-  .theme-space {
-    --bg-img: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000');
-    --text: #e0e5ff; --accent: #9bb7ff; --glass: rgba(10, 15, 30, 0.8);
-    --pattern: url('https://www.transparenttextures.com/patterns/stardust.png');
-  }
+  .theme-sakura { --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000'); --text: #fff0f5; --accent: #ff8da1; --glass: rgba(45, 27, 46, 0.7); --pattern: url('https://www.transparenttextures.com/patterns/diagmonds-light.png'); }
+  .theme-sunset { --bg-img: url('https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000'); --text: #ffebd6; --accent: #ff9a76; --glass: rgba(50, 20, 10, 0.7); --pattern: url('https://www.transparenttextures.com/patterns/cubes.png'); }
+  .theme-cyber { --bg-img: url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=1000'); --text: #e0ffe0; --accent: #00ffcc; --glass: rgba(5, 10, 10, 0.8); --pattern: url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); }
+  .theme-space { --bg-img: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000'); --text: #e0e5ff; --accent: #9bb7ff; --glass: rgba(10, 15, 30, 0.8); --pattern: url('https://www.transparenttextures.com/patterns/stardust.png'); }
   * { box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
   body { margin: 0; padding: 16px; padding-bottom: 100px; background: var(--bg-img) center/cover no-repeat fixed; color: var(--text); min-height: 100vh; transition: background 0.4s, color 0.4s; }
   body::before { content: ''; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: -1; }
@@ -58,70 +42,32 @@
   .status-offline { color: #888; font-weight: 700; }
   .status-banned { color: #ff4444; font-weight: 700; }
   .status-frozen { color: #00f0ff; font-weight: 700; }
-
-  /* НОВЫЕ РАМКИ (с картинками-паттернами) */
-  .frame-none { border: none; }
   .frame-gold { border: 4px solid #ffd700; box-shadow: 0 0 15px #ffd700, inset 0 0 20px #ffd70088; }
-  .frame-fire { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ff4500, #ff8c00, #ff4500) border-box; box-shadow: 0 0 20px #ff4500; }
-  .frame-sakura { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ffb7c5, #ff69b4, #ffb7c5) border-box; box-shadow: 0 0 20px #ffb7c5; }
-  .frame-anime { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ff007f, #00f0ff, #ff007f) border-box; box-shadow: 0 0 25px #ff007f, 0 0 40px #00f0ff; }
-  .frame-neon { border: 4px solid #00ffcc; box-shadow: 0 0 20px #00ffcc, inset 0 0 15px #00ffcc88; }
-  .frame-galaxy { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=200') border-box; background-size: cover; box-shadow: 0 0 20px #9bb7ff; }
-  .frame-stars { border: 4px solid #fff; box-shadow: 0 0 15px #fff, 0 0 30px #ffd700, inset 0 0 10px #fff; }
-  .frame-rainbow { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet) border-box; animation: rainbow-shift 3s linear infinite; }
-  @keyframes rainbow-shift { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
-
-  /* УЗОР ПРОФИЛЯ (полупрозрачный паттерн на фоне) */
-  .profile-pattern {
-    position: relative; border-radius: 20px; overflow: hidden;
-  }
-  .profile-pattern::before {
-    content: ''; position: absolute; inset: 0;
-    background-image: var(--pattern); background-size: 200px;
-    opacity: 0.08; pointer-events: none; z-index: 0;
-  }
+  .frame-fire { border: 4px solid #ff4500; box-shadow: 0 0 20px #ff4500; }
+  .frame-sakura { border: 4px solid #ffb7c5; box-shadow: 0 0 20px #ffb7c5; }
+  .frame-anime { border: 4px solid #ff007f; box-shadow: 0 0 25px #ff007f, 0 0 40px #00f0ff; }
+  .frame-neon { border: 4px solid #00ffcc; box-shadow: 0 0 20px #00ffcc; }
+  .frame-galaxy { border: 4px solid #9bb7ff; box-shadow: 0 0 20px #9bb7ff, 0 0 40px #fff; }
+  .frame-stars { border: 4px solid #fff; box-shadow: 0 0 15px #fff, 0 0 30px #ffd700; }
+  .frame-rainbow { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet) border-box; }
+  .profile-pattern { position: relative; border-radius: 20px; overflow: hidden; }
+  .profile-pattern::before { content: ''; position: absolute; inset: 0; background-image: var(--pattern); background-size: 200px; opacity: 0.08; pointer-events: none; z-index: 0; }
   .profile-pattern > * { position: relative; z-index: 1; }
-
-  /* СТИЛИ ПОСТА (только шрифт) */
-  .post-style-default { font-family: 'Montserrat', sans-serif; }
   .post-style-handwriting { font-family: 'Caveat', cursive; font-size: 22px; }
   .post-style-pixel { font-family: 'Press Start 2P', cursive; font-size: 12px; line-height: 1.8; }
   .post-style-elegant { font-family: 'Pacifico', cursive; }
-
-  /* РУЛЕТКА-КОЛЕСО */
   .roulette-container { position: relative; width: 260px; height: 260px; margin: 20px auto; }
-  .roulette-wheel {
-    width: 260px; height: 260px; border-radius: 50%;
-    background: conic-gradient(
-      #ff007f 0deg 36deg, #00f0ff 36deg 72deg, #ffd700 72deg 108deg,
-      #ff4500 108deg 144deg, #9bb7ff 144deg 180deg, #00ff88 180deg 216deg,
-      #ff69b4 216deg 252deg, #8a2be2 252deg 288deg, #ffa500 288deg 324deg,
-      #00ced1 324deg 360deg
-    );
-    transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
-    box-shadow: 0 0 30px rgba(255,255,255,0.3);
-  }
-  .roulette-arrow {
-    position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
-    font-size: 30px; color: #fff; text-shadow: 0 0 10px #000; z-index: 2;
-  }
-  .roulette-labels { position: absolute; inset: 0; pointer-events: none; }
-  .roulette-label {
-    position: absolute; left: 50%; top: 50%; transform-origin: 0 0;
-    font-size: 11px; font-weight: 900; color: #fff; text-shadow: 0 0 3px #000;
-  }
-
-  /* РАКЕТА */
-  .rocket-track { position: relative; height: 300px; background: linear-gradient(to top, #000033, #000066); border-radius: 16px; overflow: hidden; margin: 16px 0; }
-  .rocket-icon { position: absolute; font-size: 40px; transition: bottom 0.1s linear; left: 50%; transform: translateX(-50%); }
+  .roulette-wheel { width: 260px; height: 260px; border-radius: 50%; background: conic-gradient(#ff007f 0deg 36deg, #00f0ff 36deg 72deg, #ffd700 72deg 108deg, #ff4500 108deg 144deg, #9bb7ff 144deg 180deg, #00ff88 180deg 216deg, #ff69b4 216deg 252deg, #8a2be2 252deg 288deg, #ffa500 288deg 324deg, #00ced1 324deg 360deg); transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); box-shadow: 0 0 30px rgba(255,255,255,0.3); }
+  .roulette-arrow { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 30px; color: #fff; text-shadow: 0 0 10px #000; z-index: 2; }
+  .roulette-labels { position: absolute; inset: 0; pointer-events: none; transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
+  .roulette-label { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; font-size: 11px; font-weight: 900; color: #fff; text-shadow: 0 0 3px #000; }
+  .rocket-track { position: relative; height: 300px; background: linear-gradient(to top, #000022, #000044, #000066); border-radius: 16px; overflow: hidden; margin: 16px 0; }
+  .rocket-icon { position: absolute; font-size: 40px; transition: bottom 0.1s linear; left: 50%; transform: translateX(-50%); filter: drop-shadow(0 0 10px #ffaa00); }
   .rocket-stars { position: absolute; inset: 0; background-image: radial-gradient(white 1px, transparent 1px); background-size: 30px 30px; opacity: 0.3; }
-
-  /* КЕЙСЫ */
   .case-track { position: relative; height: 80px; background: rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; margin: 16px 0; }
   .case-items { display: flex; transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
   .case-item { min-width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 32px; border-right: 1px solid rgba(255,255,255,0.1); }
   .case-arrow { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; background: red; box-shadow: 0 0 10px red; z-index: 2; }
-
   .game-font { font-family: 'Press Start 2P', cursive; }
 </style>
 </head>
@@ -146,25 +92,30 @@
 
   function timeMsk(dateStr) {
     if (!dateStr) return '';
-    const d = new Date(dateStr + 'Z');
-    return d.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+    try {
+      const d = new Date(dateStr + 'Z');
+      return d.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+    } catch { return ''; }
   }
 
   function statusInfo(lastSeen, isBanned, isFrozen) {
     if (isBanned) return { text: '🚫 забанен', cls: 'status-banned' };
     if (isFrozen) return { text: '❄️ заморожен', cls: 'status-frozen' };
     if (!lastSeen) return { text: 'не в сети', cls: 'status-offline' };
-    const d = new Date(lastSeen + 'Z');
-    const diff = (Date.now() - d.getTime()) / 1000;
-    if (diff < 60) return { text: 'в сети', cls: 'status-online' };
-    if (diff < 3600) return { text: `${Math.floor(diff/60)} мин назад`, cls: 'status-offline' };
-    if (diff < 86400) return { text: `${Math.floor(diff/3600)} ч назад`, cls: 'status-offline' };
-    return { text: `${Math.floor(diff/86400)} дн назад`, cls: 'status-offline' };
+    try {
+      const d = new Date(lastSeen + 'Z');
+      const diff = (Date.now() - d.getTime()) / 1000;
+      if (diff < 60) return { text: 'в сети', cls: 'status-online' };
+      if (diff < 3600) return { text: `${Math.floor(diff/60)} мин назад`, cls: 'status-offline' };
+      if (diff < 86400) return { text: `${Math.floor(diff/3600)} ч назад`, cls: 'status-offline' };
+      return { text: `${Math.floor(diff/86400)} дн назад`, cls: 'status-offline' };
+    } catch { return { text: 'не в сети', cls: 'status-offline' }; }
   }
-    function CommentItem({ c, onProfile, postAuthorId, onReply }) {
+
+  function CommentItem({ c, onProfile, postAuthorId, onReply }) {
     const react = async (emoji) => { await api('/api/react', { method:'POST', body: JSON.stringify({ target_type: 'comment', target_id: c.id, emoji }) }); };
     const vote = async (val) => { await api('/api/vote', { method:'POST', body: JSON.stringify({ target_type: 'comment', target_id: c.id, value: val }) }); };
-    const bodyHtml = c.body.replace(/\[sticker\](.*?)\[\/sticker\]/g, (m, fid) => `<br><img src="/api/sticker/${fid}" style="width:100px;height:100px;border-radius:12px;margin-top:8px;">`);
+    const bodyHtml = (c.body || '').replace(/\[sticker\](.*?)\[\/sticker\]/g, (m, fid) => `<br><img src="/api/sticker/${fid}" style="width:100px;height:100px;border-radius:12px;margin-top:8px;">`);
     return e('div', { className: 'card', style: {padding: 12, marginBottom: 8, marginLeft: c.parent_id ? 20 : 0} },
       e('div', { className: 'row between' },
         e('span', { className: 'hint', onClick: () => onProfile(c.author_id) }, `${c.badge || ''} @${c.custom_nick || c.username} ${c.author_id === postAuthorId ? '👑' : ''} · ${timeMsk(c.created_at)}`),
@@ -185,7 +136,7 @@
   function PostView({ id, onBack, onProfile, theme }) {
     const [data, setData] = useState(null); const [text, setText] = useState(''); const [replyTo, setReplyTo] = useState(null); const [fileId, setFileId] = useState(null);
     const [adultConfirmed, setAdultConfirmed] = useState(false);
-    const load = () => api('/api/posts/' + id).then(setData);
+    const load = () => api('/api/posts/' + id).then(setData).catch(err => alert(err.message));
     useEffect(() => { load(); }, [id]);
     if (!data) return e('div', {className:'loading'}, 'Читаем...');
     const { post, comments } = data;
@@ -222,13 +173,13 @@
       } catch(err) { alert(err.message); }
     };
 
-    const styleClass = post.style === 'handwriting' ? 'post-style-handwriting' : post.style === 'pixel' ? 'post-style-pixel' : post.style === 'elegant' ? 'post-style-elegant' : 'post-style-default';
+    const styleClass = post.style === 'handwriting' ? 'post-style-handwriting' : post.style === 'pixel' ? 'post-style-pixel' : post.style === 'elegant' ? 'post-style-elegant' : '';
 
     return e('div', {className: `theme-${theme}`},
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
       e('div', { className: 'card' },
         e('div', { className: 'row between' },
-          e('span', { className: 'tag' }, post.tags.split(',').map(t => '#'+t.trim()).join(' ')),
+          e('span', { className: 'tag' }, (post.tags || 'general').split(',').map(t => '#'+t.trim()).join(' ')),
           e('span', { className: 'hint', onClick: () => onProfile(post.author_id) }, `${post.is_anonymous ? '🕶️ Аноним' : `${post.badge || ''} @${post.custom_nick || post.username}`} · ${timeMsk(post.created_at)}`)
         ),
         e('h2', { className: 'title ' + styleClass }, post.title),
@@ -267,14 +218,14 @@
     const [bannerIndex, setBannerIndex] = useState(0);
     const [giftTarget, setGiftTarget] = useState(''); const [giftType, setGiftType] = useState('heart'); const [giftDesc, setGiftDesc] = useState('');
     const [banners, setBanners] = useState([]);
-    const [ownedFrames, setOwnedFrames] = useState([]);
 
     const load = () => api('/api/profile/' + (userId || ME.id)).then(p => { 
       setProfile(p); setNick(p.custom_nick || ''); setBio(p.bio || ''); 
-      setOwnedFrames((p.owned_frames || '').split(',').filter(Boolean));
-    });
-    useEffect(() => { load(); api('/api/banners').then(setBanners); }, [userId]);
-    if (!profile) return e('div', {className:'loading'}, 'Загрузка...');
+    }).catch(err => alert(err.message));
+    useEffect(() => { load(); api('/api/banners').then(setBanners).catch(()=>{}); }, [userId]);
+
+    if (!profile) return e('div', {className:'loading'}, 'Загрузка профиля...');
+
     const isMe = profile.id === ME.id;
     const save = async () => { await api('/api/profile', { method:'POST', body: JSON.stringify({ custom_nick: nick, bio: bio }) }); setEditMode(false); load(); };
     const buyFrame = async (f) => { try { await api('/api/buy_frame?frame='+f, {method:'POST'}); load(); } catch(err) { alert(err.message); } };
@@ -289,423 +240,4 @@
 
     const frameList = [
       { key: 'gold', name: '🥇 Золото', price: 50 },
-      { key: 'fire', name: '🔥 Огонь', price: 100 },
-      { key: 'sakura', name: '🌸 Сакура', price: 150 },
-      { key: 'anime', name: '🎨 Аниме', price: 200 },
-      { key: 'neon', name: '💡 Неон', price: 250 },
-      { key: 'galaxy', name: '🌌 Галактика', price: 300 },
-      { key: 'stars', name: '⭐ Звёзды', price: 350 },
-      { key: 'rainbow', name: '🌈 Радуга', price: 400 },
-    ];
-
-    return e('div', {className: `theme-${theme}`},
-      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
-      profile.banner && profile.banner !== 'none' && e('img', { src: profile.banner, style: {width: '100%', borderRadius: 12, marginBottom: 8} }),
-      e('div', { className: 'card profile-pattern', style: {textAlign: 'center'} },
-        e('img', { src: avatarUrl, className: 'frame-'+profile.frame, style: {width: 100, height: 100, borderRadius: '50%', background:'rgba(0,0,0,0.5)', objectFit: 'cover'} }),
-        e('h2', { style: {color: 'var(--accent)', margin: '16px 0 4px'} }, `${profile.badge || ''} ${profile.custom_nick || profile.first_name}`),
-        e('p', { className: 'hint' }, `@${profile.username || 'no_username'} · ID: ${profile.id}`),
-        e('p', { className: st.cls }, st.text),
-        profile.strikes > 0 && e('p', {className: 'hint'}, `⚡ Страйков: ${profile.strikes}/3`),
-
-        editMode ? e('div', {style: {marginTop:20}},
-          e('input', { placeholder: 'Ник', value: nick, onChange: ev => setNick(ev.target.value) }),
-          e('input', { placeholder: 'О себе', value: bio, onChange: ev => setBio(ev.target.value) }),
-          e('button', { onClick: save, style: {width:'100%'} }, 'Сохранить')
-        ) : e('div', {style: {marginTop:20}},
-          e('p', { style: {fontStyle: 'italic', margin: '12px 0'} }, profile.bio || 'Тут пока пусто...'),
-          isMe && e('button', { onClick: () => setEditMode(true), className: 'ghost', style: {width: '100%'} }, '✏️ Редактировать'),
-          !isMe && e('button', { onClick: async () => { await api('/api/subscribe', {method:'POST', body: JSON.stringify({target_id: profile.id})}); load(); }, className: 'ghost', style: {width: '100%'} }, profile.is_subscribed ? '✓ Подписан' : '🔔 Подписаться')
-        ),
-
-        e('div', { className: 'row between', style: {marginTop: 24, background: 'rgba(0,0,0,0.4)', padding: 12, borderRadius: 12} },
-          e('div', null, e('div', {className:'hint'}, 'Карма'), e('b', {style:{color:'var(--accent)'}}, profile.karma)),
-          e('div', null, e('div', {className:'hint'}, 'Кристаллы'), e('b', null, profile.crystals)),
-          e('div', null, e('div', {className:'hint'}, 'Постов'), e('b', null, profile.posts_count || 0))
-        ),
-
-        e('div', {style:{marginTop:24}},
-          e('div', {className:'hint', marginBottom:8}, `Уровень ${profile.level}`),
-          e('div', {className:'level-bar'}, e('div', {className:'level-fill', style:{width: `${(profile.karma % 10) * 10}%`}}))
-        ),
-
-        profile.top_post && e('div', {style:{marginTop:24, textAlign:'left'}},
-          e('div', {className:'hint', marginBottom:8}, '🔥 Самый популярный пост:'),
-          e('div', {style:{background:'rgba(0,0,0,0.4)', padding:12, borderRadius:12, cursor:'pointer'}, onClick: () => onBack(profile.top_post.id)}, profile.top_post.title)
-        ),
-
-        profile.achievements?.length > 0 && e('div', {style:{marginTop:24}},
-          e('div', {className:'hint', marginBottom:8}, '🏆 Достижения:'),
-          profile.achievements.map(a => e('span', {key: a, className: 'tag', style:{margin:4}}, a))
-        ),
-
-        e('div', {style:{marginTop:24}},
-          e('div', {className:'hint', marginBottom:8}, '🎁 Подарки:'),
-          profile.gifts?.length ? profile.gifts.map((g, i) => e('div', {key: i, style:{margin:4}},
-            e('span', {className:'tag'}, `${g.name === 'heart' ? '💖' : g.name === 'star' ? '⭐' : g.name === 'crown' ? '👑' : g.name === 'rose' ? '🌹' : '💎'} от @${g.from}`),
-            g.desc && e('div', {className:'hint', style:{fontSize:10}}, g.desc)
-          )) : e('span', {className:'hint'}, 'Пока нет')
-        ),
-
-        isMe && e('div', {style:{marginTop:24}},
-          e('button', { className: 'ghost', onClick: () => setShopOpen(!shopOpen), style:{width:'100%'} }, '🛍️ Магазин рамок'),
-          shopOpen && e('div', {style:{marginTop:12, display:'flex', flexDirection:'column', gap:8}},
-            frameList.map(f => {
-              const owned = ownedFrames.includes(f.key);
-              return e('button', {
-                key: f.key,
-                className: 'ghost',
-                onClick: () => owned ? equipFrame(f.key) : buyFrame(f.key),
-                style: {width: '100%', opacity: owned && profile.frame !== f.key ? 0.7 : 1}
-              }, owned ? (profile.frame === f.key ? `✓ ${f.name} (надето)` : `✓ ${f.name} — надеть`) : `${f.name} — ${f.price} 💎`);
-            })
-          )
-        ),
-
-        isMe && e('div', {style:{marginTop:24}},
-          e('button', { className: 'ghost', onClick: () => setBannerOpen(!bannerOpen), style:{width:'100%'} }, '🖼️ Баннеры'),
-          bannerOpen && currentBanner && e('div', {style:{marginTop:12, textAlign:'center'}},
-            e('img', { src: currentBanner.image_url, style: {width:'100%', borderRadius:12, marginBottom:8} }),
-            e('div', {className: 'row between'},
-              e('button', { className: 'ghost', onClick: () => setBannerIndex((bannerIndex - 1 + banners.length) % banners.length) }, '←'),
-              e('span', {className: 'hint'}, `${currentBanner.name} · ${currentBanner.price} 💎`),
-              e('button', { className: 'ghost', onClick: () => setBannerIndex((bannerIndex + 1) % banners.length) }, '→')
-            ),
-            e('button', { onClick: () => buyBanner(currentBanner.id), style: {width: '100%', marginTop: 8} }, 'Купить и надеть')
-          )
-        ),
-
-        isMe && e('div', {style:{marginTop:16, padding:12, background:'rgba(0,0,0,0.4)', borderRadius:12}},
-          e('div', {className:'hint', marginBottom:4}, '🔗 Реф-ссылка:'),
-          e('div', {style:{fontSize:12, wordBreak:'break-all', color:'var(--accent)'}}, refLink)
-        ),
-
-        isMe && e('div', {style:{marginTop:24, paddingTop:16, borderTop:'1px solid var(--border)'}},
-          e('div', {className:'hint', marginBottom:8}, '🎁 Подарить (ID):'),
-          e('input', { placeholder: 'ID', value: giftTarget, onChange: ev => setGiftTarget(ev.target.value) }),
-          e('input', { placeholder: 'Подпись', value: giftDesc, onChange: ev => setGiftDesc(ev.target.value) }),
-          e('select', { value: giftType, onChange: ev => setGiftType(ev.target.value), style: {width: '100%', padding: 14, borderRadius: 12, background: 'rgba(0,0,0,0.4)', color: '#fff', marginBottom: 12} },
-            e('option', {value: 'heart'}, '💖 Сердечко (10💎)'),
-            e('option', {value: 'star'}, '⭐ Звезда (30💎)'),
-            e('option', {value: 'rose'}, '🌹 Роза (50💎)'),
-            e('option', {value: 'crown'}, '👑 Корона (100💎)'),
-            e('option', {value: 'diamond'}, '💎 Алмаз (200💎)')
-          ),
-          e('button', { onClick: buyGift, style: {width:'100%'} }, 'Отправить')
-        )
-      )
-    );
-  }
-    function Games({ onBack, theme }) {
-    const [tab, setTab] = useState('roulette');
-    const [rotation, setRotation] = useState(0);
-    const [spinning, setSpinning] = useState(false);
-    const [rouletteWin, setRouletteWin] = useState(null);
-    const [bet, setBet] = useState(10);
-    const [rocketActive, setRocketActive] = useState(false);
-    const [rocketMultiplier, setRocketMultiplier] = useState(1.0);
-    const [rocketCrashed, setRocketCrashed] = useState(false);
-    const [rocketWon, setRocketWon] = useState(null);
-    const [rocketHistory, setRocketHistory] = useState([]);
-    const [caseOpen, setCaseOpen] = useState(false);
-    const [caseResult, setCaseResult] = useState(null);
-    const [caseOffset, setCaseOffset] = useState(0);
-    const rocketTimer = useRef(null);
-
-    // Рулетка с 10 секторами
-    const sectors = ['0', '1', '2', '5', '10', '0', '2', '5', '50', '1'];
-    const sectorColors = ['#ff007f', '#00f0ff', '#ffd700', '#ff4500', '#9bb7ff', '#00ff88', '#ff69b4', '#8a2be2', '#ffa500', '#00ced1'];
-    const sectorAngle = 360 / sectors.length;
-
-    const playRoulette = async () => {
-      if (spinning) return;
-      setSpinning(true);
-      try {
-        const r = await api('/api/games/roulette', {method:'POST'});
-        // Ищем, в каком секторе наш выигрыш
-        let idx = sectors.indexOf(String(r.win));
-        if (idx === -1) idx = 0;
-        // Крутим на 5 полных оборотов + нужный угол
-        const targetAngle = 360 * 5 + (360 - idx * sectorAngle - sectorAngle / 2);
-        setRotation(targetAngle);
-        setTimeout(() => { setRouletteWin(r.win); setSpinning(false); }, 3100);
-      } catch(err) { alert(err.message); setSpinning(false); }
-    };
-
-    // Ракета: начинается с 1.00, +0.01 каждые 100мс, падает в рандомный момент от 1.01 до 90 (чаще 1.9)
-    const startRocket = async () => {
-      setRocketMultiplier(1.0);
-      setRocketCrashed(false);
-      setRocketWon(null);
-      setRocketActive(true);
-      // Определяем точку падения (чаще 1.9)
-      let crashPoint;
-      if (Math.random() < 0.7) crashPoint = 1.1 + Math.random() * 2.0; // 70% — до 3.1
-      else crashPoint = 3.1 + Math.random() * 86.9; // 30% — до 90
-      
-      let current = 1.0;
-      rocketTimer.current = setInterval(() => {
-        current += 0.01;
-        setRocketMultiplier(current);
-        if (current >= crashPoint) {
-          clearInterval(rocketTimer.current);
-          setRocketCrashed(true);
-          setRocketActive(false);
-          setRocketWon(-bet);
-          setRocketHistory(prev => [crashPoint.toFixed(2), ...prev].slice(0, 5));
-        }
-      }, 100);
-    };
-
-    const cashOut = async () => {
-      if (!rocketActive) return;
-      clearInterval(rocketTimer.current);
-      setRocketActive(false);
-      try {
-        const r = await api('/api/games/rocket', {method:'POST', body: JSON.stringify({bet})});
-        setRocketWon(r.win);
-        setRocketHistory(prev => [rocketMultiplier.toFixed(2), ...prev].slice(0, 5));
-      } catch(err) { alert(err.message); }
-    };
-
-    // Кейс: анимация с вариантами
-    const casePrizes = ['💎', '⭐', '🔥', '👑', '🎁', '💖', '🌹', '💠', '❌'];
-    const playCase = async () => {
-      if (caseOpen) return;
-      setCaseOpen(true);
-      setCaseResult(null);
-      try {
-        const r = await api('/api/games/case', {method:'POST'});
-        // Анимация: крутим на случайное расстояние
-        const randomOffset = 500 + Math.random() * 1000;
-        setCaseOffset(randomOffset);
-        setTimeout(() => { 
-          setCaseResult(r.prize); 
-          setCaseOpen(false); 
-          setCaseOffset(0);
-        }, 3100);
-      } catch(err) { alert(err.message); setCaseOpen(false); }
-    };
-
-    useEffect(() => {
-      return () => { if (rocketTimer.current) clearInterval(rocketTimer.current); };
-    }, []);
-
-    return e('div', {className: `theme-${theme} game-font`},
-      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
-      e('h2', {style:{color:'var(--accent)'}}, '🎮 Игры'),
-      e('div', {className: 'row', style: {marginBottom: 16}},
-        e('button', { className: tab==='roulette' ? '' : 'ghost', onClick: () => setTab('roulette'), style: {flex:1} }, '🎰 Рулетка'),
-        e('button', { className: tab==='rocket' ? '' : 'ghost', onClick: () => setTab('rocket'), style: {flex:1} }, '🚀 Ракета'),
-        e('button', { className: tab==='case' ? '' : 'ghost', onClick: () => setTab('case'), style: {flex:1} }, '📦 Кейс')
-      ),
-
-      tab === 'roulette' && e('div', {className: 'card'},
-        e('h3', {style:{fontFamily: 'Montserrat'}}, '🎰 Бесплатная рулетка (раз в 24ч)'),
-        e('div', {className: 'roulette-container'},
-          e('div', {className: 'roulette-arrow'}, '▼'),
-          e('div', {
-            className: 'roulette-wheel',
-            style: {transform: `rotate(${rotation}deg)`}
-          }),
-          e('div', {className: 'roulette-labels'},
-            sectors.map((s, i) => e('div', {
-              key: i,
-              className: 'roulette-label',
-              style: {
-                transform: `rotate(${i * sectorAngle + sectorAngle / 2}deg) translate(90px) rotate(-${i * sectorAngle + sectorAngle / 2}deg)`,
-                width: 30, textAlign: 'center'
-              }
-            }, s))
-          )
-        ),
-        e('button', { onClick: playRoulette, style: {width:'100%', marginTop: 20}, disabled: spinning }, spinning ? 'Крутится...' : 'Крутить'),
-        rouletteWin !== null && e('h2', {style: {color:'var(--accent)', textAlign:'center', marginTop: 16, fontFamily: 'Montserrat'}}, `Выигрыш: ${rouletteWin} 💎`)
-      ),
-
-      tab === 'rocket' && e('div', {className: 'card'},
-        e('h3', {style:{fontFamily: 'Montserrat'}}, '🚀 Ракета'),
-        e('div', {className: 'rocket-track'},
-          e('div', {className: 'rocket-stars'}),
-          e('div', {className: 'rocket-icon', style: {bottom: `${Math.min((rocketMultiplier - 1) * 8, 85)}%`}}, rocketCrashed ? '💥' : '🚀')
-        ),
-        e('h2', {style: {textAlign:'center', color:'var(--accent)', fontFamily: 'Montserrat'}}, `x${rocketMultiplier.toFixed(2)}`),
-        e('div', {className: 'row', style: {justifyContent: 'center', gap: 8, marginBottom: 12}},
-          rocketHistory.map((h, i) => e('span', {key: i, className: 'tag', style: {fontSize: 11}}, `x${h}`))
-        ),
-        !rocketActive && !rocketCrashed && e('div', null,
-          e('input', { type: 'number', placeholder: 'Ставка (мин. 5)', value: bet, onChange: ev => setBet(parseInt(ev.target.value) || 0) }),
-          e('button', { onClick: startRocket, style: {width:'100%'} }, 'Запустить')
-        ),
-        rocketActive && e('button', { onClick: cashOut, style: {width:'100%'}}, `Забрать ${(bet * rocketMultiplier).toFixed(0)} 💎`),
-        rocketCrashed && e('div', {style: {textAlign:'center'}},
-          e('p', {style: {color:'red', fontWeight: 800}}, 'Взрыв! Ставка сгорела.'),
-          e('button', { onClick: () => { setRocketCrashed(false); setRocketMultiplier(1.0); setRocketWon(null); }, style: {width:'100%'} }, 'Ещё раз')
-        )
-      ),
-
-      tab === 'case' && e('div', {className: 'card'},
-        e('h3', {style:{fontFamily: 'Montserrat'}}, '📦 Кейс (20 💎)'),
-        e('div', {className: 'case-track'},
-          e('div', {className: 'case-arrow'}),
-          e('div', {className: 'case-items', style: {transform: `translateX(-${caseOffset}px)`}},
-            Array.from({length: 30}).map((_, i) => e('div', {key: i, className: 'case-item'}, casePrizes[i % casePrizes.length]))
-          )
-        ),
-        e('button', { onClick: playCase, style: {width:'100%'}, disabled: caseOpen }, caseOpen ? 'Открывается...' : 'Открыть'),
-        caseResult && e('h2', {style: {color:'var(--accent)', textAlign:'center', marginTop: 16, fontFamily: 'Montserrat'}}, `Выпало: ${caseResult}`)
-      )
-    );
-  }
-
-  function Settings({ onBack, setTheme, currentTheme, music, setMusic, playlist, currentTrack, setCurrentTrack, searchTrack, setSearchTrack, support }) {
-    const [promoCode, setPromoCode] = useState('');
-    const filteredPlaylist = playlist.filter((_, i) => i.toString().includes(searchTrack)).slice(0, 15);
-    const redeem = async () => {
-      if (!promoCode) return;
-      try { const r = await api('/api/redeem', {method:'POST', body: JSON.stringify({code: promoCode})}); alert(`+${r.amount} 💎`); setPromoCode(''); }
-      catch(err) { alert(err.message); }
-    };
-    return e('div', {className: `theme-${currentTheme}`},
-      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
-      e('h2', {style:{color:'var(--accent)'}}, '⚙️ Настройки'),
-      e('div', { className: 'card' },
-        e('h3', null, 'Темы'),
-        e('div', { className: 'row', style: {flexWrap: 'wrap', gap: 8} },
-          ['default', 'sakura', 'sunset', 'cyber', 'space'].map(t => e('button', {
-            key: t, className: currentTheme === t ? '' : 'ghost', onClick: () => setTheme(t),
-            style: {flex: 1, margin: 4, padding: '10px 0', textTransform: 'capitalize'}
-          }, t))
-        ),
-        e('h3', {marginTop: 24}, 'Промокод'),
-        e('input', {placeholder: 'Введи промокод', value: promoCode, onChange: ev => setPromoCode(ev.target.value)}),
-        e('button', {onClick: redeem, style: {width:'100%', marginBottom: 12}}, 'Активировать'),
-        e('h3', {marginTop: 24}, 'Музыка'),
-        e('button', { onClick: () => setMusic(!music), className: music ? '' : 'ghost', style: {width: '100%'} }, music ? '🔊 Выключить' : '🔇 Включить'),
-        e('div', {style:{marginTop:16}},
-          e('input', {placeholder: 'Поиск по номеру', value: searchTrack, onChange: ev => setSearchTrack(ev.target.value)}),
-          filteredPlaylist.map((_, i) => {
-            const idx = playlist.indexOf(_);
-            return e('div', {key: idx, className: 'row between', style:{padding: 8, borderBottom: '1px solid var(--border)', cursor: 'pointer'}, onClick: () => setCurrentTrack(idx)},
-              e('span', {style: {color: idx === currentTrack ? 'var(--accent)' : 'inherit'}}, `Трек ${idx + 1}`),
-              idx === currentTrack && e('span', {className: 'hint'}, '🎵')
-            )
-          })
-        ),
-        e('h3', {marginTop: 24}, 'Поддержка'),
-        e('a', { href: support, style: {color: 'var(--accent)'} }, 'Написать админу: ' + support)
-      )
-    );
-  }
-
-  function Compose({ onBack, onCreated, theme }) {
-    const [title, setTitle] = useState(''); const [body, setBody] = useState(''); const [tags, setTags] = useState('general');
-    const [file, setFile] = useState(null); const [anon, setAnon] = useState(false); const [adult, setAdult] = useState(false);
-    const [style, setStyle] = useState('default'); const [mentioned, setMentioned] = useState('');
-    const [loading, setLoading] = useState(false);
-
-    const submit = async () => {
-      setLoading(true);
-      try {
-        let fileId = null;
-        if (file) { const fd = new FormData(); fd.append('file', file); const res = await fetch('/api/upload', { method:'POST', headers: {'X-Init-Data': INIT}, body: fd }).then(r => r.json()); fileId = res.file_id; }
-        await api('/api/posts', { method:'POST', body: JSON.stringify({ title, body, tags, image_file_id: fileId, is_anonymous: anon, is_adult: adult, style, mentioned_user: mentioned ? parseInt(mentioned) : null }) });
-        alert('Отправлено!'); onCreated();
-      } catch(err) { alert(err.message); } finally { setLoading(false); }
-    };
-    return e('div', {className: `theme-${theme}`},
-      e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Отмена'),
-      e('h2', { style: {color: 'var(--accent)'} }, 'Создать пост'),
-      e('input', { placeholder: 'Заголовок', value: title, onChange: ev => setTitle(ev.target.value) }),
-      e('input', { placeholder: 'Теги (до 3)', value: tags, onChange: ev => setTags(ev.target.value) }),
-      e('textarea', { rows: 6, placeholder: 'Текст...', value: body, onChange: ev => setBody(ev.target.value) }),
-      e('input', { type: 'file', accept: 'image/*,image/gif', onChange: ev => setFile(ev.target.files[0]), style:{color:'#fff'} }),
-      e('select', { value: style, onChange: ev => setStyle(ev.target.value), style: {width: '100%', padding: 14, borderRadius: 12, background: 'rgba(0,0,0,0.4)', color: '#fff', marginBottom: 12} },
-        e('option', {value: 'default'}, 'Обычный шрифт'),
-        e('option', {value: 'handwriting'}, 'Рукописный'),
-        e('option', {value: 'pixel'}, 'Пиксельный'),
-        e('option', {value: 'elegant'}, 'Элегантный')
-      ),
-      e('input', { placeholder: 'ID пользователя для упоминания', value: mentioned, onChange: ev => setMentioned(ev.target.value) }),
-      e('label', {style: {display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8}},
-        e('input', {type: 'checkbox', checked: anon, onChange: ev => setAnon(ev.target.checked), style: {width: 'auto'}}), ' Анонимно'
-      ),
-      e('label', {style: {display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12}},
-        e('input', {type: 'checkbox', checked: adult, onChange: ev => setAdult(ev.target.checked), style: {width: 'auto'}}), ' 18+'
-      ),
-      e('button', { onClick: submit, style: {width:'100%'}, disabled: loading }, loading ? '...' : 'Опубликовать')
-    );
-  }
-
-  function App() {
-    const [route, setRoute] = useState({ view: 'list' });
-    const [theme, setThemeState] = useState(localStorage.getItem('theme') || 'default');
-    const [posts, setPosts] = useState([]);
-    const [search, setSearch] = useState('');
-    const [sort, setSort] = useState('new');
-    const [music, setMusic] = useState(localStorage.getItem('music') === 'true');
-    const [playlist, setPlaylist] = useState([]);
-    const [currentTrack, setCurrentTrack] = useState(0);
-    const [searchTrack, setSearchTrack] = useState('');
-    const [support, setSupport] = useState('https://t.me/kvails');
-    const [canRoulette, setCanRoulette] = useState(true);
-
-    const reload = () => { api(`/api/posts?sort=${sort}${search ? `&q=${search}` : ''}`).then(d => setPosts(d.posts)); };
-    useEffect(() => { reload(); }, [search, sort]);
-    useEffect(() => { api('/api/playlist').then(setPlaylist); api('/api/support').then(s => setSupport(s.link)); }, []);
-
-    useEffect(() => {
-      const audio = document.getElementById('bg-music');
-      if (music && playlist.length > 0) { audio.src = `/api/music/${currentTrack}`; audio.play().catch(() => {}); }
-      else { audio.pause(); }
-      localStorage.setItem('music', music);
-    }, [music, currentTrack, playlist]);
-
-    useEffect(() => {
-      const audio = document.getElementById('bg-music');
-      const onEnded = () => { if (playlist.length > 0) setCurrentTrack((currentTrack + 1) % playlist.length); };
-      audio.addEventListener('ended', onEnded);
-      return () => audio.removeEventListener('ended', onEnded);
-    }, [playlist, currentTrack]);
-
-    const setTheme = (t) => { setThemeState(t); localStorage.setItem('theme', t); };
-
-    if (route.view === 'profile') return e(Profile, { userId: route.id, onBack: () => setRoute({view:'list'}), theme });
-    if (route.view === 'post') return e(PostView, { id: route.id, onBack: () => setRoute({view:'list'}), onProfile: id => setRoute({view:'profile', id}), theme });
-    if (route.view === 'compose') return e(Compose, { onBack: () => setRoute({view:'list'}), onCreated: () => setRoute({view:'list'}), theme });
-    if (route.view === 'settings') return e(Settings, { onBack: () => setRoute({view:'list'}), setTheme, currentTheme: theme, music, setMusic, playlist, currentTrack, setCurrentTrack, searchTrack, setSearchTrack, support });
-    if (route.view === 'games') return e(Games, { onBack: () => setRoute({view:'list'}), theme });
-
-    return e('div', { className: `theme-${theme}` },
-      e('div', { className: 'row between', style: {marginBottom: 20} },
-        e('h1', { style: {margin: 0, color: '#fff', fontSize: 32}, onClick: reload }, '⛩️ RaReads'),
-        e('div', {style: {display: 'flex', gap: 8}},
-          e('button', { className: 'ghost', onClick: () => setRoute({view:'games'}), style: {position:'relative'} },
-            '🎮', canRoulette && e('span', {className: 'red-dot'})
-          ),
-          e('button', { className: 'ghost', onClick: () => setRoute({view:'settings'}) }, '⚙️')
-        )
-      ),
-      e('input', { placeholder: '🔍 Поиск по тегу...', value: search, onChange: ev => setSearch(ev.target.value) }),
-      e('div', { className: 'row', style: {marginBottom: 20} },
-        e('button', { className: sort === 'new' ? '' : 'ghost', onClick: () => setSort('new'), style: {flex: 1} }, '🆕 Недавнее'),
-        e('button', { className: sort === 'day_top' ? '' : 'ghost', onClick: () => setSort('day_top'), style: {flex: 1} }, '🔥 Популярное')
-      ),
-      posts.map(p => e('div', { key: p.id, className: 'card', onClick: () => setRoute({view:'post', id: p.id}) },
-        e('div', { className: 'row between' },
-          e('span', { className: 'tag' }, p.tags.split(',').map(t => '#'+t.trim()).join(' ')),
-          e('span', { className: 'hint' }, p.is_anonymous ? '🕶️ Аноним' : `${p.badge || ''} @${p.custom_nick || p.username} · ${timeMsk(p.created_at)}`)
-        ),
-        e('div', { className: 'title' }, p.title),
-        e('div', { className: 'hint', marginTop: 8 }, `▲ ${p.score} · 💬 ${p.comments} · 👁 ${p.views}`),
-        e('div', { style: {display: 'flex', gap: 4, marginTop: 8} }, Object.entries(p.reactions || {}).map(([r, c]) => e('span', {key: r, style: {background:'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: 10, fontSize: 12}}, `${r} ${c}`)))
-      )),
-      e('button', { className: 'fab', onClick: () => setRoute({view:'compose'}) }, '+'),
-      e('button', { className: 'fab-profile', onClick: () => setRoute({view:'profile', id: ME.id}) }, '👤')
-    );
-  }
-
-  ReactDOM.createRoot(document.getElementById('root')).render(e(App));
-</script>
-</body>
-</html>
+      { key: 'fire', name: '🔥 Огонь', price: 1

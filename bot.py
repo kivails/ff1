@@ -31,15 +31,20 @@ async def get_avatar_file_id(user_id: int) -> str | None:
         pass
     return None
 
+async def ensure_user_row(user_id, username, first_name):
+    async with aiosqlite.connect(DB) as db:
+        await db.execute("INSERT OR IGNORE INTO users(id, username, first_name) VALUES (?,?,?)", (user_id, username, first_name))
+        await db.execute("UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = ?", (user_id,))
+        await db.commit()
+
 @dp.message(CommandStart())
 async def start_cmd(message: types.Message):
     avatar_id = await get_avatar_file_id(message.from_user.id)
-    async with aiosqlite.connect(DB) as db:
-        await db.execute("INSERT OR IGNORE INTO users(id, username, first_name) VALUES (?,?,?)", (message.from_user.id, message.from_user.username, message.from_user.first_name))
-        if avatar_id:
+    await ensure_user_row(message.from_user.id, message.from_user.username, message.from_user.first_name)
+    if avatar_id:
+        async with aiosqlite.connect(DB) as db:
             await db.execute("UPDATE users SET avatar = ? WHERE id = ?", (avatar_id, message.from_user.id))
-        await db.execute("UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = ?", (message.from_user.id,))
-        await db.commit()
+            await db.commit()
     GIF_URL = "https://media.giphy.com/media/VbnUQpnihPSIgIXuZv/giphy.gif"
     kb = InlineKeyboardBuilder()
     kb.button(text="📖 Открыть RaReads", web_app=WebAppInfo(url=APP_URL))
@@ -49,10 +54,27 @@ async def start_cmd(message: types.Message):
 async def support_cmd(message: types.Message):
     await message.answer("🆘 Поддержка: @kvails (https://t.me/kvails)")
 
+@dp.message(Command("style_help"))
+async def style_help_cmd(message: types.Message):
+    await message.answer("🎨 Украшения поста настраиваются в приложении при создании поста.")
+
 @dp.message(Command("admin"))
 async def admin_cmd(message: types.Message):
     if message.from_user.id not in ADMIN_IDS: return
-    await message.answer("🛡️ Админ-команды:\n/stats\n/badge <id> <текст>\n/ban <id>\n/give_crystals <id> <сумма>\n/add_banner <название> <цена> <url>\n/remove_track <номер>")
+    await message.answer(
+        "🛡️ Админ-команды:\n"
+        "/stats — статистика\n"
+        "/badge <id> <текст> — бейдж\n"
+        "/ban <id> — бан\n"
+        "/freeze <id> — заморозка\n"
+        "/strike <id> <причина> — страйк\n"
+        "/give_crystals <id> <сумма>\n"
+        "/add_banner <название> <цена> <url>\n"
+        "/remove_banner <id>\n"
+        "/add_promo <код> <сумма> <лимит>\n"
+        "/broadcast <текст>\n"
+        "/remove_track <номер>"
+    )
 
 @dp.message(Command("stats"))
 async def stats_cmd(message: types.Message):
@@ -73,6 +95,31 @@ async def ban_cmd(message: types.Message):
             await db.commit()
         await message.answer("🚫 Забанен.")
     except: await message.answer("Формат: /ban <id>")
+
+@dp.message(Command("freeze"))
+async def freeze_cmd(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS: return
+    try:
+        target = int(message.text.split()[1])
+        async with aiosqlite.connect(DB) as db:
+            await db.execute("UPDATE users SET is_frozen=1 WHERE id=?", (target,))
+            await db.commit()
+        await message.answer("❄️ Пользователь заморожен.")
+    except: await message.answer("Формат: /freeze <id>")
+
+@dp.message(Command("strike"))
+async def strike_cmd(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS: return
+    try:
+        args = message.text.split(maxsplit=2)
+        target, reason = int(args[1]), args[2]
+        async with aiosqlite.connect(DB) as db:
+            await db.execute("INSERT INTO strikes(user_id, reason) VALUES (?,?)", (target, reason))
+            await db.commit()
+            cur = await db.execute("SELECT COUNT(*) FROM strikes WHERE user_id=?", (target,))
+            cnt = (await cur.fetchone())[0]
+        await message.answer(f"⚡ Страйк выдан ({cnt}/3). Причина: {reason}")
+    except: await message.answer("Формат: /strike <id> <причина>")
 
 @dp.message(Command("badge"))
 async def badge_cmd(message: types.Message):
@@ -108,6 +155,47 @@ async def add_banner(message: types.Message):
         await message.answer("✅ Баннер добавлен!")
     except: await message.answer("Формат: /add_banner <название> <цена> <url>")
 
+@dp.message(Command("remove_banner"))
+async def remove_banner(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS: return
+    try:
+        bid = int(message.text.split()[1])
+        async with aiosqlite.connect(DB) as db:
+            await db.execute("DELETE FROM banners WHERE id=?", (bid,))
+            await db.commit()
+        await message.answer("✅ Баннер удалён.")
+    except: await message.answer("Формат: /remove_banner <id>")
+
+@dp.message(Command("add_promo"))
+async def add_promo(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS: return
+    try:
+        args = message.text.split()
+        code, amount, limit = args[1], int(args[2]), int(args[3])
+        async with aiosqlite.connect(DB) as db:
+            await db.execute("INSERT INTO settings(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                             (f"promo_{code}", json.dumps({"amount": amount, "limit": limit, "used": 0})))
+            await db.commit()
+        await message.answer(f"✅ Промокод {code} на {amount} 💎 (лимит {limit}) создан.")
+    except: await message.answer("Формат: /add_promo <код> <сумма> <лимит>")
+
+@dp.message(Command("broadcast"))
+async def broadcast(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS: return
+    text = message.text.replace("/broadcast", "").strip()
+    if not text: return await message.answer("Формат: /broadcast <текст>")
+    async with aiosqlite.connect(DB) as db:
+        cur = await db.execute("SELECT id FROM users WHERE is_banned=0")
+        users = await cur.fetchall()
+    sent = 0
+    for (uid,) in users:
+        try:
+            await bot.send_message(uid, text)
+            sent += 1
+        except: pass
+        await asyncio.sleep(0.05)
+    await message.answer(f"✅ Рассылка отправлена {sent} пользователям.")
+
 @dp.message(Command("remove_track"))
 async def remove_track(message: types.Message):
     if message.from_user.id not in ADMIN_IDS: return
@@ -124,57 +212,72 @@ async def remove_track(message: types.Message):
             else:
                 await message.answer("Нет такого трека.")
     except: await message.answer("Формат: /remove_track <номер>")
-
-# --- ИГРЫ (дублируют приложение, но полезны) ---
-@dp.message(Command("roulette"))
-async def roulette_cmd(message: types.Message):
-    async with aiosqlite.connect(DB) as db:
-        await db.execute("INSERT OR IGNORE INTO users(id, username, first_name) VALUES (?,?,?)", (message.from_user.id, message.from_user.username, message.from_user.first_name))
-        cur = await db.execute("SELECT last_roulette FROM users WHERE id=?", (message.from_user.id,))
-        last = await cur.fetchone()
-        now = datetime.datetime.utcnow()
-        if last and last[0] and (now - datetime.datetime.fromisoformat(last[0])).total_seconds() < 86400:
-            return await message.answer("⏳ Рулетка раз в 24 часа!")
-        win = random.choice([0, 1, 2, 5, 10, 50])
-        await db.execute("UPDATE users SET crystals = crystals + ?, last_roulette=? WHERE id=?", (win, now.isoformat(), message.from_user.id))
-        await db.commit()
-    await message.answer(f"🎰 Ты выиграл {win} 💎!")
-
-@dp.message(Command("slots"))
-async def slots_cmd(message: types.Message):
-    icons = ["🍒", "🍋", "💎", "7️⃣", "⭐"]
-    res = [random.choice(icons) for _ in range(3)]
-    win = 0
-    if res[0] == res[1] == res[2]: win = 50 if res[0] == "💎" else 20
-    elif res[0] == res[1] or res[1] == res[2]: win = 5
-    async with aiosqlite.connect(DB) as db:
-        await db.execute("INSERT OR IGNORE INTO users(id, username, first_name) VALUES (?,?,?)", (message.from_user.id, message.from_user.username, message.from_user.first_name))
-        await db.execute("UPDATE users SET crystals = crystals + ? WHERE id=?", (win, message.from_user.id))
-        await db.commit()
-    await message.answer(f"🎰 {' | '.join(res)}\n\nВыигрыш: {win} 💎!")
-
-@dp.message(Command("rocket"))
-async def rocket_cmd(message: types.Message):
-    args = message.text.split()
-    if len(args) < 2: return await message.answer("Формат: /rocket <ставка>")
+        @dp.message(Command("redeem"))
+async def redeem_cmd(message: types.Message):
     try:
-        bet = int(args[1])
-        if bet < 5: return await message.answer("Мин. ставка 5 💎")
+        code = message.text.split()[1]
         async with aiosqlite.connect(DB) as db:
-            cur = await db.execute("SELECT crystals FROM users WHERE id=?", (message.from_user.id,))
-            bal = (await cur.fetchone())[0]
-            if bal < bet: return await message.answer("Мало кристаллов!")
-            crash = random.uniform(1.1, 5.0)
-            win = int(bet * crash)
-            await db.execute("UPDATE users SET crystals = crystals + ? WHERE id=?", (win - bet, message.from_user.id))
+            cur = await db.execute("SELECT value FROM settings WHERE key=?", (f"promo_{code}",))
+            row = await cur.fetchone()
+            if not row:
+                return await message.answer("❌ Неверный промокод.")
+            promo = json.loads(row[0])
+            if promo["used"] >= promo["limit"]:
+                return await message.answer("❌ Лимит промокода исчерпан.")
+            cur = await db.execute("SELECT 1 FROM promo_uses WHERE user_id=? AND code=?", (message.from_user.id, code))
+            if await cur.fetchone():
+                return await message.answer("❌ Ты уже активировал этот промокод.")
+            await db.execute("UPDATE users SET crystals = crystals + ? WHERE id=?", (promo["amount"], message.from_user.id))
+            await db.execute("INSERT INTO promo_uses(user_id, code) VALUES (?,?)", (message.from_user.id, code))
+            promo["used"] += 1
+            await db.execute("UPDATE settings SET value=? WHERE key=?", (json.dumps(promo), f"promo_{code}"))
             await db.commit()
-        await message.answer(f"🚀 Ракета взлетела до x{crash:.2f}!\nВыигрыш: {win} 💎")
-    except: await message.answer("Ошибка")
+        await message.answer(f"✅ Промокод активирован! +{promo['amount']} 💎")
+    except: await message.answer("Формат: /redeem <код>")
+
+@dp.message(Command("share"))
+async def share_cmd(message: types.Message):
+    try:
+        post_id = int(message.text.split()[1])
+        async with aiosqlite.connect(DB) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT title, body, tags FROM posts WHERE id=?", (post_id,))
+            post = await cur.fetchone()
+        if not post:
+            return await message.answer("❌ Пост не найден.")
+        text = f"📖 <b>{post['title']}</b>\n\n{post['body'][:500]}\n\n🔗 <a href='{APP_URL}/#post/{post_id}'>Открыть пост</a>\n# {post['tags']}"
+        await message.answer(text, parse_mode="HTML")
+    except: await message.answer("Формат: /share <post_id>")
+
+@dp.message(Command("report_user"))
+async def report_user_cmd(message: types.Message):
+    try:
+        args = message.text.split(maxsplit=2)
+        target, reason = int(args[1]), args[2]
+        async with aiosqlite.connect(DB) as db:
+            await db.execute("INSERT INTO reports(reporter_id, target_id, reason) VALUES (?,?,?)", (message.from_user.id, target, reason))
+            await db.commit()
+        for admin in ADMIN_IDS:
+            try:
+                await bot.send_message(admin, f"🚩 Жалоба на пользователя {target}\nПричина: {reason}\nОт: {message.from_user.id}")
+            except: pass
+        await message.answer("✅ Жалоба отправлена админу.")
+    except: await message.answer("Формат: /report_user <id> <причина>")
+
+@dp.message(Command("appeal"))
+async def appeal_cmd(message: types.Message):
+    reason = message.text.replace("/appeal", "").strip()
+    if not reason: return await message.answer("Формат: /appeal <текст>")
+    for admin in ADMIN_IDS:
+        try:
+            await bot.send_message(admin, f"⚖️ Апелляция от {message.from_user.id}\n{reason}")
+        except: pass
+    await message.answer("✅ Апелляция отправлена.")
 
 @dp.message(F.sticker | F.animation | F.photo)
 async def handle_media(message: types.Message):
     fid = message.sticker.file_id if message.sticker else (message.animation.file_id if message.animation else message.photo[-1].file_id)
-    await message.answer(f"📎 Твой file_id:\n<code>{fid}</code>\n\nВставь его в комментарий (через поле 'Текст').", parse_mode="HTML")
+    await message.answer(f"📎 Твой file_id:\n<code>{fid}</code>\n\nВставь его в комментарий или пост.", parse_mode="HTML")
 
 @dp.message(F.audio | F.document)
 async def handle_music(message: types.Message):
@@ -209,10 +312,9 @@ async def mod_action(callback: types.CallbackQuery):
 async def set_commands():
     await bot.set_my_commands([
         types.BotCommand(command="start", description="Запуск ⛩️"),
-        types.BotCommand(command="roulette", description="Рулетка 🎰"),
-        types.BotCommand(command="slots", description="Слоты 🎰"),
-        types.BotCommand(command="rocket", description="Ракета 🚀"),
         types.BotCommand(command="support", description="Поддержка 🆘"),
+        types.BotCommand(command="redeem", description="Активировать промокод 🎁"),
+        types.BotCommand(command="appeal", description="Апелляция ⚖️"),
         types.BotCommand(command="stats", description="Статистика 📊"),
         types.BotCommand(command="admin", description="Админ 🛡️")
     ])

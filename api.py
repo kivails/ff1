@@ -147,6 +147,20 @@ async def subscribed_posts(user=Depends(current_user)):
 async def create_post(data: PostIn, user=Depends(current_user)):
     await ensure_user(user)
     async with aiosqlite.connect(DB) as db:
+        # --- АНТИСПАМ ---
+        # Если за последний час у автора 3+ поста с одинаковым заголовком или телом — блокируем
+        cur = await db.execute("""SELECT COUNT(*) FROM posts 
+                                  WHERE author_id=? AND created_at >= datetime('now', '-1 hour') 
+                                  AND (title=? OR body=?)""",
+                              (user.get("id"), data.title, data.body))
+        spam_count = (await cur.fetchone())[0]
+        if spam_count >= 3:
+            for admin in ADMIN_IDS:
+                try:
+                    await send_tg(admin, f"🚨 <b>Антиспам!</b>\nПользователь {user.get('id')} ({user.get('first_name')}) пытается создать повторный пост.\n\n<b>{data.title}</b>")
+                except: pass
+            raise HTTPException(429, "Антиспам: слишком много одинаковых постов за час")
+
         tags_str = ', '.join([t.strip().replace('#', '') for t in data.tags.split(',') if t.strip()][:3]) or 'general'
         status = 'approved' if user.get("id") in ADMIN_IDS else 'pending'
         cur = await db.execute("""INSERT INTO posts(author_id,title,body,tags,image_file_id,status,is_anonymous,is_adult,style,mentioned_user) 
@@ -293,16 +307,16 @@ async def get_profile(user_id: int, user=Depends(current_user)):
         cur = await db.execute("SELECT COUNT(*) FROM strikes WHERE user_id=?", (user_id,))
         strikes_count = (await cur.fetchone())[0]
         
-        # Купленные рамки (owned_frames) — список через запятую
         owned_frames = u.get("owned_frames", "") or ""
-        # Если поле frame не 'none', оно тоже считается купленным
         if u.get("frame") and u.get("frame") != "none" and u.get("frame") not in owned_frames.split(","):
             owned_frames = (owned_frames + "," + u.get("frame")).strip(",")
+        cur = await db.execute("SELECT COUNT(*) FROM posts WHERE author_id=?", (user_id,))
+        posts_count = (await cur.fetchone())[0]
     return {
         **dict(u), "karma": p + c, "level": (p + c) // 10, 
         "top_post": dict(top) if top else None, "achievements": achs, 
         "gifts": gifts, "is_subscribed": is_subscribed, "strikes": strikes_count,
-        "owned_frames": owned_frames
+        "owned_frames": owned_frames, "posts_count": posts_count
     }
 
 @app.post("/api/profile")
@@ -354,8 +368,10 @@ async def game_case(user=Depends(current_user)):
         prize = random.choice(["none", "crystals_10", "crystals_50", "frame_gold", "frame_fire"])
         if prize == "crystals_10": await db.execute("UPDATE users SET crystals = crystals + 10 WHERE id=?", (user.get("id"),))
         elif prize == "crystals_50": await db.execute("UPDATE users SET crystals = crystals + 50 WHERE id=?", (user.get("id"),))
-        elif prize == "frame_gold": await db.execute("UPDATE users SET frame='gold' WHERE id=?", (user.get("id"),))
-        elif prize == "frame_fire": await db.execute("UPDATE users SET frame='fire' WHERE id=?", (user.get("id"),))
+        elif prize == "frame_gold": 
+            await db.execute("UPDATE users SET frame='gold', owned_frames=COALESCE(owned_frames,'') || ',gold' WHERE id=?", (user.get("id"),))
+        elif prize == "frame_fire": 
+            await db.execute("UPDATE users SET frame='fire', owned_frames=COALESCE(owned_frames,'') || ',fire' WHERE id=?", (user.get("id"),))
         await db.execute("INSERT INTO games_log(user_id, game, win) VALUES (?,?,?)", (user.get("id"), "case", 0))
         await db.commit()
     return {"prize": prize}
@@ -374,7 +390,7 @@ async def buy_frame(frame: str, user=Depends(current_user)):
         if frame in owned_list or frame == current_frame:
             raise HTTPException(400, "Рамка уже куплена")
         if crystals < costs[frame]: raise HTTPException(400, "Мало кристаллов!")
-        new_owned = ",".join(owned_list + [frame]).strip(",")
+        new_owned = ",".join([f for f in owned_list if f] + [frame]).strip(",")
         await db.execute("UPDATE users SET crystals = crystals - ?, frame = ?, owned_frames = ? WHERE id=?", 
                          (costs[frame], frame, new_owned, user.get("id")))
         await db.commit()

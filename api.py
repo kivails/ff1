@@ -307,7 +307,7 @@ async def get_profile(user_id: int, user=Depends(current_user)):
         cur = await db.execute("SELECT COUNT(*) FROM strikes WHERE user_id=?", (user_id,))
         strikes_count = (await cur.fetchone())[0]
         
-        owned_frames = u.get("owned_frames", "") or ""
+        owned_frames = u["owned_frames"] if "owned_frames" in u.keys() else ""
         if u.get("frame") and u.get("frame") != "none" and u.get("frame") not in owned_frames.split(","):
             owned_frames = (owned_frames + "," + u.get("frame")).strip(",")
         cur = await db.execute("SELECT COUNT(*) FROM posts WHERE author_id=?", (user_id,))

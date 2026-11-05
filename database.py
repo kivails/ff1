@@ -9,8 +9,9 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, 
     bio TEXT DEFAULT '', custom_nick TEXT, theme TEXT DEFAULT 'default',
-    crystals INTEGER DEFAULT 0, frame TEXT DEFAULT 'none', badge TEXT DEFAULT '',
-    banner TEXT DEFAULT 'none',
+    crystals INTEGER DEFAULT 0, frame TEXT DEFAULT 'none', 
+    owned_frames TEXT DEFAULT '',
+    badge TEXT DEFAULT '', banner TEXT DEFAULT 'none',
     avatar TEXT DEFAULT '',
     is_banned INTEGER DEFAULT 0, is_frozen INTEGER DEFAULT 0,
     last_daily TIMESTAMP, last_roulette TIMESTAMP,
@@ -116,12 +117,13 @@ async def init_db():
     async with aiosqlite.connect(DB) as db:
         await db.executescript(SCHEMA)
         
-        # Миграции для старых баз
+        # Миграции для старых баз (добавляют недостающие колонки, не удаляя данные)
         await add_column_if_missing(db, "users", "avatar", "TEXT", "''")
         await add_column_if_missing(db, "users", "banner", "TEXT", "'none'")
         await add_column_if_missing(db, "users", "last_roulette", "TIMESTAMP", "NULL")
         await add_column_if_missing(db, "users", "last_seen", "TIMESTAMP", "CURRENT_TIMESTAMP")
         await add_column_if_missing(db, "users", "is_frozen", "INTEGER", "0")
+        await add_column_if_missing(db, "users", "owned_frames", "TEXT", "''")
         await add_column_if_missing(db, "posts", "is_anonymous", "INTEGER", "0")
         await add_column_if_missing(db, "posts", "is_adult", "INTEGER", "0")
         await add_column_if_missing(db, "posts", "style", "TEXT", "'default'")

@@ -333,6 +333,17 @@ async def update_profile(data: ProfileUpdate, user=Depends(current_user)):
         await db.commit()
     return {"ok": True}
 
+@app.post("/api/set_pattern")
+async def set_pattern(pattern: str, user=Depends(current_user)):
+    await ensure_user(user)
+    allowed = ["none", "asfalt", "diagmonds", "cubes", "stars"]
+    if pattern not in allowed:
+        raise HTTPException(400, "Неизвестный узор")
+    async with aiosqlite.connect(DB) as db:
+        await db.execute("UPDATE users SET profile_pattern=? WHERE id=?", (pattern, user.get("id")))
+        await db.commit()
+    return {"ok": True}
+
 # --- ИГРЫ ---
 @app.post("/api/games/roulette")
 async def game_roulette(user=Depends(current_user)):

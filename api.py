@@ -292,6 +292,7 @@ async def get_profile(user_id: int, user=Depends(current_user)):
         cur = await db.execute("SELECT * FROM users WHERE id=?", (user_id,))
         u = await cur.fetchone()
         if not u: raise HTTPException(404)
+        keys = u.keys()
         cur = await db.execute("SELECT SUM(score) FROM posts WHERE author_id=?", (user_id,))
         p = (await cur.fetchone())[0] or 0
         cur = await db.execute("SELECT SUM(score) FROM comments WHERE author_id=?", (user_id,))
@@ -306,18 +307,19 @@ async def get_profile(user_id: int, user=Depends(current_user)):
         is_subscribed = bool(await cur.fetchone())
         cur = await db.execute("SELECT COUNT(*) FROM strikes WHERE user_id=?", (user_id,))
         strikes_count = (await cur.fetchone())[0]
-        
-        owned_frames = u["owned_frames"] if "owned_frames" in u.keys() else ""
-       current_frame = u["frame"] if "frame" in u.keys() else ""
-if current_frame and current_frame != "none" and current_frame not in owned_frames.split(","):
-            owned_frames = (owned_frames + "," + u.get("frame")).strip(",")
         cur = await db.execute("SELECT COUNT(*) FROM posts WHERE author_id=?", (user_id,))
         posts_count = (await cur.fetchone())[0]
+        
+        owned_frames = u["owned_frames"] if "owned_frames" in keys else ""
+        current_frame = u["frame"] if "frame" in keys else ""
+        if current_frame and current_frame != "none" and current_frame not in (owned_frames or "").split(","):
+            owned_frames = (owned_frames + "," + current_frame).strip(",")
+        
     return {
         **dict(u), "karma": p + c, "level": (p + c) // 10, 
         "top_post": dict(top) if top else None, "achievements": achs, 
         "gifts": gifts, "is_subscribed": is_subscribed, "strikes": strikes_count,
-        "owned_frames": owned_frames, "posts_count": posts_count
+        "owned_frames": owned_frames or "", "posts_count": posts_count
     }
 
 @app.post("/api/profile")

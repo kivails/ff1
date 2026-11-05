@@ -9,18 +9,21 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Pacifico&family=Caveat:wght@700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg-img: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop'); --text: #f0f0f0; --accent: #ffb7c5; --glass: rgba(20, 20, 30, 0.7); --border: rgba(255,255,255,0.1); --pattern: url('https://www.transparenttextures.com/patterns/asfalt-light.png'); }
-  .theme-sakura { --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000'); --text: #fff0f5; --accent: #ff8da1; --glass: rgba(45, 27, 46, 0.7); --pattern: url('https://www.transparenttextures.com/patterns/diagmonds-light.png'); }
-  .theme-sunset { --bg-img: url('https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000'); --text: #ffebd6; --accent: #ff9a76; --glass: rgba(50, 20, 10, 0.7); --pattern: url('https://www.transparenttextures.com/patterns/cubes.png'); }
-  .theme-cyber { --bg-img: url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=1000'); --text: #e0ffe0; --accent: #00ffcc; --glass: rgba(5, 10, 10, 0.8); --pattern: url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); }
-  .theme-space { --bg-img: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000'); --text: #e0e5ff; --accent: #9bb7ff; --glass: rgba(10, 15, 30, 0.8); --pattern: url('https://www.transparenttextures.com/patterns/stardust.png'); }
+  :root { 
+    --bg-img: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop'); 
+    --text: #f0f0f0; --accent: #ffb7c5; --glass: rgba(20, 20, 30, 0.7); --border: rgba(255,255,255,0.1);
+  }
+  .theme-sakura { --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000'); --text: #fff0f5; --accent: #ff8da1; --glass: rgba(45, 27, 46, 0.7); }
+  .theme-sunset { --bg-img: url('https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1000'); --text: #ffebd6; --accent: #ff9a76; --glass: rgba(50, 20, 10, 0.7); }
+  .theme-cyber { --bg-img: url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=1000'); --text: #e0ffe0; --accent: #00ffcc; --glass: rgba(5, 10, 10, 0.8); }
+  .theme-space { --bg-img: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000'); --text: #e0e5ff; --accent: #9bb7ff; --glass: rgba(10, 15, 30, 0.8); }
   * { box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
   body { margin: 0; padding: 16px; padding-bottom: 100px; background: var(--bg-img) center/cover no-repeat fixed; color: var(--text); min-height: 100vh; transition: background 0.4s, color 0.4s; }
   body::before { content: ''; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: -1; }
   h1, h2, h3 { font-family: 'Pacifico', cursive; font-weight: 400; }
   .card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 16px; position: relative; overflow: hidden; }
-  .card::before { content: ''; position: absolute; inset: 0; background-image: var(--pattern); background-size: 200px; opacity: 0.12; pointer-events: none; }
-  .card > * { position: relative; z-index: 1; }
+  .card-pattern::before { content: ''; position: absolute; inset: 0; background-image: var(--pattern, none); background-size: 200px; opacity: 0.15; pointer-events: none; z-index: 0; }
+  .card-pattern > * { position: relative; z-index: 1; }
   .row { display: flex; align-items: center; gap: 12px; } .between { justify-content: space-between; }
   .hint { color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 700; } 
   .title { font-weight: 800; font-size: 20px; margin: 10px 0; }
@@ -41,28 +44,33 @@
   .status-banned { color: #ff4444; font-weight: 700; }
   .status-frozen { color: #00f0ff; font-weight: 700; }
   .frame-gold { border: 4px solid #ffd700; box-shadow: 0 0 15px #ffd700; }
-  .frame-fire { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ff4500, #ff8c00) border-box; box-shadow: 0 0 20px #ff4500; }
-  .frame-sakura { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ffb7c5, #ff69b4) border-box; box-shadow: 0 0 20px #ffb7c5; }
-  .frame-anime { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ff007f, #00f0ff) border-box; box-shadow: 0 0 25px #ff007f; }
+  .frame-fire { border: 4px solid #ff4500; box-shadow: 0 0 20px #ff4500; }
+  .frame-sakura { border: 4px solid #ffb7c5; box-shadow: 0 0 20px #ffb7c5; }
+  .frame-anime { border: 4px solid #ff007f; box-shadow: 0 0 25px #ff007f, 0 0 40px #00f0ff; }
   .frame-neon { border: 4px solid #00ffcc; box-shadow: 0 0 20px #00ffcc; }
-  .frame-galaxy { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=200') border-box; background-size: cover; box-shadow: 0 0 20px #9bb7ff; }
+  .frame-galaxy { border: 4px solid #9bb7ff; box-shadow: 0 0 20px #9bb7ff, 0 0 40px #fff; }
   .frame-stars { border: 4px solid #fff; box-shadow: 0 0 15px #fff, 0 0 30px #ffd700; }
   .frame-rainbow { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet) border-box; }
   .post-style-handwriting { font-family: 'Caveat', cursive; font-size: 22px; }
-  .post-style-pixel { font-family: 'Montserrat', monospace; font-size: 14px; line-height: 1.8; letter-spacing: 1px; }
+  .post-style-pixel { font-family: 'Montserrat', monospace; font-size: 14px; letter-spacing: 1px; }
   .post-style-elegant { font-family: 'Pacifico', cursive; }
-  .roulette-container { position: relative; width: 260px; height: 260px; margin: 20px auto; }
-  .roulette-wheel { width: 260px; height: 260px; border-radius: 50%; background: conic-gradient(#ff007f 0deg 36deg, #00f0ff 36deg 72deg, #ffd700 72deg 108deg, #ff4500 108deg 144deg, #9bb7ff 144deg 180deg, #00ff88 180deg 216deg, #ff69b4 216deg 252deg, #8a2be2 252deg 288deg, #ffa500 288deg 324deg, #00ced1 324deg 360deg); transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); box-shadow: 0 0 30px rgba(255,255,255,0.3); }
-  .roulette-arrow { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 30px; color: #fff; text-shadow: 0 0 10px #000; z-index: 2; }
+  .post-style-serif { font-family: Georgia, serif; }
+  .post-style-bold { font-weight: 900; }
+  .post-style-italic { font-style: italic; }
+  .roulette-container { position: relative; width: 280px; height: 280px; margin: 20px auto; }
+  .roulette-wheel { width: 280px; height: 280px; border-radius: 50%; background: conic-gradient(#ff007f 0deg 36deg, #00f0ff 36deg 72deg, #ffd700 72deg 108deg, #ff4500 108deg 144deg, #9bb7ff 144deg 180deg, #00ff88 180deg 216deg, #ff69b4 216deg 252deg, #8a2be2 252deg 288deg, #ffa500 288deg 324deg, #00ced1 324deg 360deg); transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); box-shadow: 0 0 30px rgba(255,255,255,0.3), inset 0 0 30px rgba(0,0,0,0.5); border: 6px solid #fff; }
+  .roulette-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border-radius: 50%; background: #111; display: flex; align-items: center; justify-content: center; font-size: 32px; z-index: 3; border: 4px solid #fff; }
+  .roulette-arrow { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); font-size: 40px; color: #ff007f; text-shadow: 0 0 15px #ff007f; z-index: 4; }
   .roulette-labels { position: absolute; inset: 0; pointer-events: none; transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
-  .roulette-label { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; font-size: 14px; font-weight: 900; color: #fff; text-shadow: 0 0 3px #000; }
-  .rocket-track { position: relative; height: 220px; background: linear-gradient(135deg, #000022, #000044, #000066); border-radius: 16px; overflow: hidden; margin: 16px 0; }
-  .rocket-icon { position: absolute; font-size: 30px; transition: all 0.1s linear; filter: drop-shadow(0 0 10px #ffaa00); }
+  .roulette-label { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; font-size: 16px; font-weight: 900; color: #fff; text-shadow: 0 0 5px #000, 0 0 10px #000; }
+  .rocket-track { position: relative; height: 220px; background: linear-gradient(135deg, #000022, #000044, #000066); background-size: 100% 200%; border-radius: 16px; overflow: hidden; margin: 16px 0; transition: background-position 0.1s linear; }
+  .rocket-icon { position: absolute; font-size: 30px; transition: all 0.1s linear; filter: drop-shadow(0 0 10px #ffaa00); transform: rotate(-45deg); }
   .rocket-stars { position: absolute; inset: 0; background-image: radial-gradient(white 1px, transparent 1px); background-size: 30px 30px; opacity: 0.3; }
   .case-track { position: relative; height: 80px; background: rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; margin: 16px 0; }
   .case-items { display: flex; transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
   .case-item { min-width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 32px; border-right: 1px solid rgba(255,255,255,0.1); }
   .case-arrow { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; background: red; box-shadow: 0 0 10px red; z-index: 2; }
+  .case-result { font-size: 64px; text-align: center; margin-top: 16px; }
 </style>
 </head>
 <body>
@@ -173,7 +181,7 @@
       } catch(err) { alert(err.message); }
     };
 
-    const styleClass = post.style === 'handwriting' ? 'post-style-handwriting' : post.style === 'pixel' ? 'post-style-pixel' : post.style === 'elegant' ? 'post-style-elegant' : '';
+    const styleClass = post.style === 'handwriting' ? 'post-style-handwriting' : post.style === 'pixel' ? 'post-style-pixel' : post.style === 'elegant' ? 'post-style-elegant' : post.style === 'serif' ? 'post-style-serif' : post.style === 'bold' ? 'post-style-bold' : post.style === 'italic' ? 'post-style-italic' : '';
 
     return e('div', {className: `theme-${theme}`},
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
@@ -218,9 +226,18 @@
     const [bannerIndex, setBannerIndex] = useState(0);
     const [giftTarget, setGiftTarget] = useState(''); const [giftType, setGiftType] = useState('heart'); const [giftDesc, setGiftDesc] = useState('');
     const [banners, setBanners] = useState([]);
+    const [pattern, setPattern] = useState('none');
+
+    const PATTERNS = {
+      none: '',
+      asfalt: 'url(https://www.transparenttextures.com/patterns/asfalt-light.png)',
+      diagmonds: 'url(https://www.transparenttextures.com/patterns/diagmonds-light.png)',
+      cubes: 'url(https://www.transparenttextures.com/patterns/cubes.png)',
+      stars: 'url(https://www.transparenttextures.com/patterns/stardust.png)',
+    };
 
     const load = () => api('/api/profile/' + (userId || ME.id)).then(p => { 
-      setProfile(p); setNick(p.custom_nick || ''); setBio(p.bio || ''); 
+      setProfile(p); setNick(p.custom_nick || ''); setBio(p.bio || ''); setPattern(p.profile_pattern || 'none');
     }).catch(err => alert(err.message));
     useEffect(() => { load(); api('/api/banners').then(setBanners).catch(()=>{}); }, [userId]);
 
@@ -228,6 +245,7 @@
 
     const isMe = profile.id === ME.id;
     const save = async () => { await api('/api/profile', { method:'POST', body: JSON.stringify({ custom_nick: nick, bio: bio }) }); setEditMode(false); load(); };
+    const setPatternSave = async (p) => { setPattern(p); try { await api('/api/set_pattern?pattern='+p, {method:'POST'}); } catch(err) { alert(err.message); } };
     const buyFrame = async (f) => { try { await api('/api/buy_frame?frame='+f, {method:'POST'}); load(); } catch(err) { alert(err.message); } };
     const equipFrame = async (f) => { try { await api('/api/equip_frame?frame='+f, {method:'POST'}); load(); } catch(err) { alert(err.message); } };
     const buyBanner = async (bid) => { try { await api('/api/buy_banner?banner_id='+bid, {method:'POST'}); load(); } catch(err) { alert(err.message); } };
@@ -257,7 +275,7 @@
     return e('div', {className: `theme-${theme}`},
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
       profile.banner && profile.banner !== 'none' && e('img', { src: profile.banner, style: {width: '100%', borderRadius: 12, marginBottom: 8} }),
-      e('div', { className: 'card', style: {textAlign: 'center'} },
+      e('div', { className: 'card card-pattern', style: {textAlign: 'center', '--pattern': PATTERNS[pattern] || 'none'} },
         e('img', { src: avatarUrl, className: 'frame-'+(profile.frame || 'none'), style: {width: 100, height: 100, borderRadius: '50%', background:'rgba(0,0,0,0.5)', objectFit: 'cover'} }),
         e('h2', { style: {color: 'var(--accent)', margin: '16px 0 4px'} }, `${profile.badge || ''} ${profile.custom_nick || profile.first_name}`),
         e('p', { className: 'hint' }, `@${profile.username || 'no_username'} · ID: ${profile.id}`),
@@ -318,6 +336,17 @@
           )
         ),
 
+        isMe && e('div', {style:{marginTop:16}},
+          e('div', {className:'hint', marginBottom:8}, '🎨 Узор профиля:'),
+          e('div', {className: 'row', style:{flexWrap:'wrap', gap:8}},
+            Object.keys(PATTERNS).map(p => e('button', {
+              key: p, className: pattern === p ? '' : 'ghost',
+              onClick: () => setPatternSave(p),
+              style: {flex:1, padding:'8px 4px', fontSize:11, textTransform:'capitalize'}
+            }, p))
+          )
+        ),
+
         isMe && e('div', {style:{marginTop:24}},
           e('button', { className: 'ghost', onClick: () => setBannerOpen(!bannerOpen), style:{width:'100%'} }, '🖼️ Баннеры'),
           bannerOpen && currentBanner && e('div', {style:{marginTop:12, textAlign:'center'}},
@@ -352,8 +381,7 @@
       )
     );
   }
-
-  function Games({ onBack, theme }) {
+    function Games({ onBack, theme }) {
     const [tab, setTab] = useState('roulette');
     const [rotation, setRotation] = useState(0);
     const [spinning, setSpinning] = useState(false);
@@ -405,6 +433,12 @@
     };
 
     const startRocket = async () => {
+      try {
+        const check = await api('/api/profile/' + ME.id);
+        if ((check.crystals || 0) < bet) { alert('Мало кристаллов!'); return; }
+        if (bet < 5) { alert('Мин. ставка 5 💎'); return; }
+      } catch(err) { alert(err.message); return; }
+
       setRocketMultiplier(1.0);
       setRocketCrashed(false);
       setRocketWon(null);
@@ -445,6 +479,10 @@
 
     const playCase = async () => {
       if (caseOpen) return;
+      try {
+        const check = await api('/api/profile/' + ME.id);
+        if ((check.crystals || 0) < 20) { alert('Мало кристаллов!'); return; }
+      } catch(err) { alert(err.message); return; }
       setCaseOpen(true);
       setCaseResult(null);
       try {
@@ -474,8 +512,12 @@
         e('div', {className: 'roulette-container'},
           e('div', {className: 'roulette-arrow'}, '▼'),
           e('div', {className: 'roulette-wheel', style: {transform: `rotate(${rotation}deg)`}}),
+          e('div', {className: 'roulette-center'}, '🎰'),
           e('div', {className: 'roulette-labels', style: {transform: `rotate(${rotation}deg)`}},
-            sectors.map((s, i) => e('div', {key: i, className: 'roulette-label', style: {transform: `rotate(${i * sectorAngle + sectorAngle / 2}deg) translate(90px) rotate(-${i * sectorAngle + sectorAngle / 2}deg)`, width: 30, textAlign: 'center'}}, s))
+            sectors.map((s, i) => e('div', {key: i, className: 'roulette-label', style: {
+              transform: `rotate(${i * sectorAngle + sectorAngle / 2}deg) translate(100px) rotate(-${i * sectorAngle + sectorAngle / 2}deg)`,
+              width: 40, textAlign: 'center'
+            }}, s))
           )
         ),
         e('button', { onClick: playRoulette, style: {width:'100%', marginTop: 20}, disabled: spinning }, spinning ? 'Крутится...' : 'Крутить'),
@@ -484,12 +526,11 @@
 
       tab === 'rocket' && e('div', {className: 'card'},
         e('h3', null, '🚀 Ракета'),
-        e('div', {className: 'rocket-track'},
+        e('div', {className: 'rocket-track', style: {backgroundPosition: `0 ${Math.min((rocketMultiplier - 1) * 10, 100)}%`}},
           e('div', {className: 'rocket-stars'}),
           e('div', {className: 'rocket-icon', style: {
-            left: `${Math.min((rocketMultiplier - 1) * 10, 85)}%`,
+            left: `${Math.min((rocketMultiplier - 1) * 10, 80)}%`,
             bottom: `${Math.min((rocketMultiplier - 1) * 8, 80)}%`,
-            transform: 'rotate(-45deg)'
           }}, rocketCrashed ? '💥' : '🚀')
         ),
         e('h2', {style: {textAlign:'center', color:'var(--accent)'}}, `x${rocketMultiplier.toFixed(2)}`),
@@ -521,7 +562,10 @@
           )
         ),
         e('button', { onClick: playCase, style: {width:'100%'}, disabled: caseOpen }, caseOpen ? 'Открывается...' : `Открыть`),
-        caseResult && e('h2', {style: {color:'var(--accent)', textAlign:'center', marginTop: 16}}, `Выпало: ${caseResult}`)
+        caseResult && e('div', null,
+          e('div', {className: 'case-result'}, caseResult),
+          e('p', {className: 'hint', textAlign: 'center'}, `Выпало: ${caseResult}`)
+        )
       )
     );
   }
@@ -565,8 +609,7 @@
       )
     );
   }
-
-  function Compose({ onBack, onCreated, theme }) {
+    function Compose({ onBack, onCreated, theme }) {
     const [title, setTitle] = useState(''); const [body, setBody] = useState(''); const [tags, setTags] = useState('general');
     const [file, setFile] = useState(null); const [anon, setAnon] = useState(false); const [adult, setAdult] = useState(false);
     const [style, setStyle] = useState('default'); const [mentioned, setMentioned] = useState('');
@@ -592,7 +635,10 @@
         e('option', {value: 'default'}, 'Обычный шрифт'),
         e('option', {value: 'handwriting'}, 'Рукописный'),
         e('option', {value: 'pixel'}, 'Моно'),
-        e('option', {value: 'elegant'}, 'Элегантный')
+        e('option', {value: 'elegant'}, 'Элегантный'),
+        e('option', {value: 'serif'}, 'С засечками'),
+        e('option', {value: 'bold'}, 'Жирный'),
+        e('option', {value: 'italic'}, 'Курсив')
       ),
       e('input', { placeholder: 'ID для упоминания', value: mentioned, onChange: ev => setMentioned(ev.target.value) }),
       e('label', {style: {display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8}},

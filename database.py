@@ -129,6 +129,7 @@ async def init_db():
         await add_column_if_missing(db, "posts", "style", "TEXT", "'default'")
         await add_column_if_missing(db, "posts", "mentioned_user", "INTEGER", "NULL")
         await add_column_if_missing(db, "posts", "boost_until", "TIMESTAMP", "NULL")
+        await add_column_if_missing(db, "users", "profile_pattern", "TEXT", "'none'")
         await add_column_if_missing(db, "gifts", "description", "TEXT", "''")
         
         await db.execute("INSERT OR IGNORE INTO tags(name) VALUES ('general'), ('anime'), ('news')")

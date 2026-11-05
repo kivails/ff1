@@ -7,7 +7,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Pacifico&family=Caveat:wght@700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Pacifico&family=Caveat:wght@700&display=swap" rel="stylesheet">
 <style>
   :root { --bg-img: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1000&auto=format&fit=crop'); --text: #f0f0f0; --accent: #ffb7c5; --glass: rgba(20, 20, 30, 0.7); --border: rgba(255,255,255,0.1); --pattern: url('https://www.transparenttextures.com/patterns/asfalt-light.png'); }
   .theme-sakura { --bg-img: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=1000'); --text: #fff0f5; --accent: #ff8da1; --glass: rgba(45, 27, 46, 0.7); --pattern: url('https://www.transparenttextures.com/patterns/diagmonds-light.png'); }
@@ -18,9 +18,11 @@
   body { margin: 0; padding: 16px; padding-bottom: 100px; background: var(--bg-img) center/cover no-repeat fixed; color: var(--text); min-height: 100vh; transition: background 0.4s, color 0.4s; }
   body::before { content: ''; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: -1; }
   h1, h2, h3 { font-family: 'Pacifico', cursive; font-weight: 400; }
-  .card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 16px; }
+  .card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 16px; position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; inset: 0; background-image: var(--pattern); background-size: 200px; opacity: 0.12; pointer-events: none; }
+  .card > * { position: relative; z-index: 1; }
   .row { display: flex; align-items: center; gap: 12px; } .between { justify-content: space-between; }
-  .hint { color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 700; }
+  .hint { color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 700; } 
   .title { font-weight: 800; font-size: 20px; margin: 10px 0; }
   button { background: var(--accent); color: #111; border: none; border-radius: 12px; padding: 12px 20px; font-weight: 800; cursor: pointer; }
   button.ghost { background: rgba(0,0,0,0.3); color: var(--accent); border: 1px solid var(--accent); }
@@ -39,32 +41,28 @@
   .status-banned { color: #ff4444; font-weight: 700; }
   .status-frozen { color: #00f0ff; font-weight: 700; }
   .frame-gold { border: 4px solid #ffd700; box-shadow: 0 0 15px #ffd700; }
-  .frame-fire { border: 4px solid #ff4500; box-shadow: 0 0 20px #ff4500; }
-  .frame-sakura { border: 4px solid #ffb7c5; box-shadow: 0 0 20px #ffb7c5; }
-  .frame-anime { border: 4px solid #ff007f; box-shadow: 0 0 25px #ff007f, 0 0 40px #00f0ff; }
+  .frame-fire { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ff4500, #ff8c00) border-box; box-shadow: 0 0 20px #ff4500; }
+  .frame-sakura { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ffb7c5, #ff69b4) border-box; box-shadow: 0 0 20px #ffb7c5; }
+  .frame-anime { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(45deg, #ff007f, #00f0ff) border-box; box-shadow: 0 0 25px #ff007f; }
   .frame-neon { border: 4px solid #00ffcc; box-shadow: 0 0 20px #00ffcc; }
-  .frame-galaxy { border: 4px solid #9bb7ff; box-shadow: 0 0 20px #9bb7ff, 0 0 40px #fff; }
+  .frame-galaxy { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=200') border-box; background-size: cover; box-shadow: 0 0 20px #9bb7ff; }
   .frame-stars { border: 4px solid #fff; box-shadow: 0 0 15px #fff, 0 0 30px #ffd700; }
   .frame-rainbow { border: 4px solid transparent; background: linear-gradient(#000,#000) padding-box, linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet) border-box; }
-  .profile-pattern { position: relative; border-radius: 20px; overflow: hidden; }
-  .profile-pattern::before { content: ''; position: absolute; inset: 0; background-image: var(--pattern); background-size: 200px; opacity: 0.08; pointer-events: none; z-index: 0; }
-  .profile-pattern > * { position: relative; z-index: 1; }
   .post-style-handwriting { font-family: 'Caveat', cursive; font-size: 22px; }
-  .post-style-pixel { font-family: 'Press Start 2P', cursive; font-size: 12px; line-height: 1.8; }
+  .post-style-pixel { font-family: 'Montserrat', monospace; font-size: 14px; line-height: 1.8; letter-spacing: 1px; }
   .post-style-elegant { font-family: 'Pacifico', cursive; }
   .roulette-container { position: relative; width: 260px; height: 260px; margin: 20px auto; }
   .roulette-wheel { width: 260px; height: 260px; border-radius: 50%; background: conic-gradient(#ff007f 0deg 36deg, #00f0ff 36deg 72deg, #ffd700 72deg 108deg, #ff4500 108deg 144deg, #9bb7ff 144deg 180deg, #00ff88 180deg 216deg, #ff69b4 216deg 252deg, #8a2be2 252deg 288deg, #ffa500 288deg 324deg, #00ced1 324deg 360deg); transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); box-shadow: 0 0 30px rgba(255,255,255,0.3); }
   .roulette-arrow { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 30px; color: #fff; text-shadow: 0 0 10px #000; z-index: 2; }
   .roulette-labels { position: absolute; inset: 0; pointer-events: none; transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
-  .roulette-label { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; font-size: 11px; font-weight: 900; color: #fff; text-shadow: 0 0 3px #000; }
-  .rocket-track { position: relative; height: 300px; background: linear-gradient(to top, #000022, #000044, #000066); border-radius: 16px; overflow: hidden; margin: 16px 0; }
-  .rocket-icon { position: absolute; font-size: 40px; transition: bottom 0.1s linear; left: 50%; transform: translateX(-50%); filter: drop-shadow(0 0 10px #ffaa00); }
+  .roulette-label { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; font-size: 14px; font-weight: 900; color: #fff; text-shadow: 0 0 3px #000; }
+  .rocket-track { position: relative; height: 220px; background: linear-gradient(135deg, #000022, #000044, #000066); border-radius: 16px; overflow: hidden; margin: 16px 0; }
+  .rocket-icon { position: absolute; font-size: 30px; transition: all 0.1s linear; filter: drop-shadow(0 0 10px #ffaa00); }
   .rocket-stars { position: absolute; inset: 0; background-image: radial-gradient(white 1px, transparent 1px); background-size: 30px 30px; opacity: 0.3; }
   .case-track { position: relative; height: 80px; background: rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; margin: 16px 0; }
   .case-items { display: flex; transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
   .case-item { min-width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 32px; border-right: 1px solid rgba(255,255,255,0.1); }
   .case-arrow { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; background: red; box-shadow: 0 0 10px red; z-index: 2; }
-  .game-font { font-family: 'Press Start 2P', cursive; }
 </style>
 </head>
 <body>
@@ -107,10 +105,17 @@
       return { text: `${Math.floor(diff/86400)} дн назад`, cls: 'status-offline' };
     } catch { return { text: 'не в сети', cls: 'status-offline' }; }
   }
+
+  function renderBody(body) {
+    if (!body) return '';
+    let html = body.replace(/\[sticker\](.*?)\[\/sticker\]/g, (m, fid) => `<br><img src="/api/sticker/${fid}" style="width:100px;height:100px;border-radius:12px;margin-top:8px;">`);
+    html = html.replace(/(?<!\[sticker\])(AgACAg[^\s<]+)/g, (m, fid) => `<br><img src="/api/sticker/${fid}" style="width:100px;height:100px;border-radius:12px;margin-top:8px;">`);
+    return html;
+  }
+
   function CommentItem({ c, onProfile, postAuthorId, onReply }) {
     const react = async (emoji) => { await api('/api/react', { method:'POST', body: JSON.stringify({ target_type: 'comment', target_id: c.id, emoji }) }); };
     const vote = async (val) => { await api('/api/vote', { method:'POST', body: JSON.stringify({ target_type: 'comment', target_id: c.id, value: val }) }); };
-    const bodyHtml = (c.body || '').replace(/\[sticker\](.*?)\[\/sticker\]/g, (m, fid) => `<br><img src="/api/sticker/${fid}" style="width:100px;height:100px;border-radius:12px;margin-top:8px;">`);
     return e('div', { className: 'card', style: {padding: 12, marginBottom: 8, marginLeft: c.parent_id ? 20 : 0} },
       e('div', { className: 'row between' },
         e('span', { className: 'hint', onClick: () => onProfile(c.author_id) }, `${c.badge || ''} @${c.custom_nick || c.username} ${c.author_id === postAuthorId ? '👑' : ''} · ${timeMsk(c.created_at)}`),
@@ -120,7 +125,7 @@
           e('button', { className: 'ghost', style: {padding: '2px 6px', fontSize: 10}, onClick: () => vote(-1) }, '▼')
         )
       ),
-      e('div', { style: {marginTop: 4, fontSize: 14}, dangerouslySetInnerHTML: {__html: bodyHtml} }),
+      e('div', { style: {marginTop: 4, fontSize: 14}, dangerouslySetInnerHTML: {__html: renderBody(c.body)} }),
       e('div', { style: {marginTop: 8, display: 'flex', gap: 6, alignItems: 'center'} },
         ['💖', '😂', '🔥'].map(r => e('button', {key: r, className: 'reaction-btn', onClick: () => react(r), style: {padding: '2px 6px', fontSize: 12}}, r)),
         e('button', {className: 'ghost', onClick: () => onReply(c.id), style: {padding: '2px 6px', fontSize: 10}}, 'Ответить')
@@ -179,7 +184,7 @@
         ),
         e('h2', { className: 'title ' + styleClass }, post.title),
         post.image_file_id && e('img', { src: '/api/image/' + post.id, style: {width:'100%', borderRadius:12, marginBottom:12} }),
-        e('div', { className: styleClass, style:{whiteSpace:'pre-wrap', lineHeight:1.6, fontSize:15} }, post.body),
+        e('div', { className: styleClass, style:{whiteSpace:'pre-wrap', lineHeight:1.6, fontSize:15}, dangerouslySetInnerHTML: {__html: renderBody(post.body)} }),
         e('div', { style: {display:'flex', gap:8, marginTop:16, flexWrap: 'wrap'} }, ['💖', '😂', '🔥', '😭', '👎', '🤔'].map(r => e('button', { key: r, className: 'reaction-btn' + (post.my_reactions?.includes(r) ? ' active' : ''), onClick: () => react(r) }, r))),
         e('div', { className: 'row between', style:{marginTop:20} },
           e('div', { style: {display:'flex', alignItems:'center', gap:10} },
@@ -252,7 +257,7 @@
     return e('div', {className: `theme-${theme}`},
       e('button', { className: 'ghost', onClick: onBack, style:{marginBottom:16} }, '← Назад'),
       profile.banner && profile.banner !== 'none' && e('img', { src: profile.banner, style: {width: '100%', borderRadius: 12, marginBottom: 8} }),
-      e('div', { className: 'card profile-pattern', style: {textAlign: 'center'} },
+      e('div', { className: 'card', style: {textAlign: 'center'} },
         e('img', { src: avatarUrl, className: 'frame-'+(profile.frame || 'none'), style: {width: 100, height: 100, borderRadius: '50%', background:'rgba(0,0,0,0.5)', objectFit: 'cover'} }),
         e('h2', { style: {color: 'var(--accent)', margin: '16px 0 4px'} }, `${profile.badge || ''} ${profile.custom_nick || profile.first_name}`),
         e('p', { className: 'hint' }, `@${profile.username || 'no_username'} · ID: ${profile.id}`),
@@ -346,7 +351,8 @@
         )
       )
     );
-       }
+  }
+
   function Games({ onBack, theme }) {
     const [tab, setTab] = useState('roulette');
     const [rotation, setRotation] = useState(0);
@@ -363,7 +369,7 @@
     const [caseResult, setCaseResult] = useState(null);
     const [caseOffset, setCaseOffset] = useState(0);
     const [caseType, setCaseType] = useState('basic');
-    const rocketTimer = useRef(null);
+    const rocketTimerRef = useRef(null);
 
     const sectors = ['0', '1', '2', '5', '10', '0', '2', '5', '50', '1'];
     const sectorAngle = 360 / sectors.length;
@@ -407,11 +413,11 @@
       if (Math.random() < 0.7) crashPoint = 1.1 + Math.random() * 2.0;
       else crashPoint = 3.1 + Math.random() * 86.9;
       let current = 1.0;
-      rocketTimer.current = setInterval(() => {
+      rocketTimerRef.current = setInterval(() => {
         current += 0.01;
         setRocketMultiplier(current);
         if (current >= crashPoint) {
-          clearInterval(rocketTimer.current);
+          clearInterval(rocketTimerRef.current);
           setRocketCrashed(true);
           setRocketActive(false);
           setRocketWon(-bet);
@@ -422,7 +428,7 @@
 
     const cashOut = async () => {
       if (!rocketActive) return;
-      clearInterval(rocketTimer.current);
+      clearInterval(rocketTimerRef.current);
       setRocketActive(false);
       try {
         const r = await api('/api/games/rocket', {method:'POST', body: JSON.stringify({bet})});
@@ -450,7 +456,7 @@
     };
 
     useEffect(() => {
-      return () => { if (rocketTimer.current) clearInterval(rocketTimer.current); };
+      return () => { if (rocketTimerRef.current) clearInterval(rocketTimerRef.current); };
     }, []);
 
     return e('div', {className: `theme-${theme}`},
@@ -480,7 +486,11 @@
         e('h3', null, '🚀 Ракета'),
         e('div', {className: 'rocket-track'},
           e('div', {className: 'rocket-stars'}),
-          e('div', {className: 'rocket-icon', style: {bottom: `${Math.min((rocketMultiplier - 1) * 8, 85)}%`}}, rocketCrashed ? '💥' : '🚀')
+          e('div', {className: 'rocket-icon', style: {
+            left: `${Math.min((rocketMultiplier - 1) * 10, 85)}%`,
+            bottom: `${Math.min((rocketMultiplier - 1) * 8, 80)}%`,
+            transform: 'rotate(-45deg)'
+          }}, rocketCrashed ? '💥' : '🚀')
         ),
         e('h2', {style: {textAlign:'center', color:'var(--accent)'}}, `x${rocketMultiplier.toFixed(2)}`),
         e('div', {className: 'row', style: {justifyContent: 'center', gap: 8, marginBottom: 12}},
@@ -581,7 +591,7 @@
       e('select', { value: style, onChange: ev => setStyle(ev.target.value), style: {width: '100%', padding: 14, borderRadius: 12, background: 'rgba(0,0,0,0.4)', color: '#fff', marginBottom: 12} },
         e('option', {value: 'default'}, 'Обычный шрифт'),
         e('option', {value: 'handwriting'}, 'Рукописный'),
-        e('option', {value: 'pixel'}, 'Пиксельный'),
+        e('option', {value: 'pixel'}, 'Моно'),
         e('option', {value: 'elegant'}, 'Элегантный')
       ),
       e('input', { placeholder: 'ID для упоминания', value: mentioned, onChange: ev => setMentioned(ev.target.value) }),
@@ -611,6 +621,12 @@
     const reload = () => { api(`/api/posts?sort=${sort}${search ? `&q=${search}` : ''}`).then(d => setPosts(d.posts || [])).catch(()=>{}); };
     useEffect(() => { reload(); }, [search, sort]);
     useEffect(() => { api('/api/playlist').then(setPlaylist).catch(()=>{}); api('/api/support').then(s => setSupport(s.link)).catch(()=>{}); }, []);
+
+    useEffect(() => {
+      const last = localStorage.getItem('last_roulette');
+      if (!last) setCanRoulette(true);
+      else setCanRoulette((Date.now() - parseInt(last)) > 86400 * 1000);
+    }, []);
 
     useEffect(() => {
       const audio = document.getElementById('bg-music');
@@ -667,5 +683,3 @@
 </script>
 </body>
 </html>
-  
-  
